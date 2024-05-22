@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+
+Sitemap: https://varun04reddy.github.io/sitemap.xml
