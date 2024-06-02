@@ -18,6 +18,6 @@ Hi, I'm Varun, an undergraduate Computer Science major at the University of Virg
 
 I am broadly interested in natural language processing, machine learning, and generative modeling. Recently, I have been exploring research questions such as:
 
-- Can we apply our understanding of the human mind to create generative models that understand and emulate skills innate to humans, such as creativity and intuition?
+- Can we apply our understanding of the human brain to create generative models that understand and emulate skills innate to humans, such as creativity and intuition?
 - How can we leverage ML methods to address real-world problems with broad social impacts, focusing on creating robust and fair solutions?
 - Can we create adaptive learning systems that can operate in dynamic and uncertain environments?
