@@ -4,7 +4,7 @@
 
 title: blank # the website title (if blank, full name will be used instead)
 first_name: Varun
-middle_name: 
+middle_name:
 last_name: Reddy
 email: dpc3qt@virginia.edu
 description: > # the ">" symbol means to ignore newlines until "footer_text:"
@@ -163,8 +163,8 @@ disqus_shortname: al-folio # put your disqus shortname
 # If you have blog posts published on medium.com or other external sources,
 # you can display them in your blog by adding a link to the RSS feed.
 external_sources:
-  - name: 
-    rss_url: 
+  - name:
+    rss_url:
 
 # -----------------------------------------------------------------------------
 # Collections
