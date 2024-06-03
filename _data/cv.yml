@@ -37,37 +37,37 @@
         - Hosted by Shawn Russell in the MAMP Lab
 
 
-- title: Open Source Projects
+- title: Industry Experience
   type: time_table
   contents:
-    - title: <a href="https://github.com/alshedivat/al-folio">al-folio</a>
-      year: 2015-now
-      description: A beautiful, simple, clean, and responsive Jekyll theme for academics.
+    - title: Algorithims Engineer Intern at Chess.com
+      year: Summer 2023
+      description:
+        - Worked on some cool projects using statistical analysis and sequence modeling and even learned some mathematical concepts behind chess that helped boost my own Elo rating!
 
-- title: Honors and Awards
+    - title: Software Engineer at Syntegral
+      year: Winter 2023
+      description:
+      - Gained lots of hands-on experience with Transformer models and worked directly with the CTO on the main product.
+
+    - title: Software Engineer at Blue Cloak
+      year: Summer 2021
+      description:
+        - Developed a GAN-based network packet generatiton system for various cybersecurity applications.
+
+- title: Projects
   type: time_table
   contents:
-    - year: 1921
-      items:
-        - Nobel Prize in Physics
-        - Matteucci Medal
-    - year: 2029
-      items:
-        - Max Planck Medal
+    - title: <a href="https://github.com/orgs/hoohacks/repositories">HooHacks HackX System</a>
+      description: <a href="https://www.hoohacks.io/">HooHacks</a> is a student-run hackathon at the University of Virginia. Apart of the technolgy committee, I helped develop the HackX system which is the backbone of the hackathon. It is a React Native based application for hackers to checkin, view the schedule, and submit their projects, judges to view and score projects, and organizers to manage the event.
 
-- title: Academic Interests
-  type: nested_list
-  contents:
-    - title: Topic 1.
-      items:
-        - Description 1.
-        - Description 2.
-    - title: Topic 2.
-      items:
-        - Description 1.
-        - Description 2.
 
-- title: Other Interests
-  type: list
+- title: Teaching Experience
+  type: time_table
   contents:
-    - <u>Hobbies:</u> Hobby 1, Hobby 2, etc.
+    - title: Teaching Assistant
+      year: Spring 2024
+      description:
+        - COMM 3050 - Quantitative Analysis II
+
+
