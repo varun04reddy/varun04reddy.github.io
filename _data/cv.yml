@@ -1,65 +1,41 @@
-- title: General Information
-  type: map
-  contents:
-    - name: Full Name
-      value: Albert Einstein
-    - name: Date of Birth
-      value: 14th March 1879
-    - name: Languages
-      value: English, German
-
 - title: Education
   type: time_table
   contents:
-    - title: PhD
-      institution: University of Zurich, Zurich, Switzerland
-      year: 1905
-      description:
-        - Description 1.
-        - Description 2.
-        - title: Description 3.
-          contents:
-            - Sub-description 1.
-            - Sub-description 2.
-    - title: Federal teaching diploma
-      institution: Eidgenössische Technische Hochschule, Zurich, Switzerland
-      year: 1900
-      description:
-        - Description 1.
-        - Description 2.
+    - title: University of Virginia
+      description: B.S. in Computer Science
+      year: 2025
+    - title: Academy of Engineering and Technology
+      description: Computer Science Pathway
+      year: 2022
 
-- title: Experience
+- title: Research Experience
   type: time_table
   contents:
-    - title: Professor of Theoretical Physics
-      institution: Institute for Advanced Study, Princeton University
-      year: 1933 - 1955
+    - title: Research Intern
+      institution: California Institute of Technology
+      year: Summer 2024
       description:
-        - Description 1.
-        - Description 2.
-        - title: Description 3.
-          contents:
-            - Sub-description 1.
-            - Sub-description 2.
-    - title: Visiting Professor
-      institution: California Institute of Technology, Pasadena, California, US
-      year: 1933
+        - Hosted by Dean Mobbs in the Fear Lab
+        - Meta Undergraduate Research Fellow
+
+    - title: Student Researcher
+      institution: University of Virginia
+      year: Fall 2022 -
       description:
-        - Description 1.
-        - Description 2.
+        - Hosted by Laura Barnes in the Link Lab
 
-    - title: Director
-      institution: Kaiser Wilhelm Institute for Physics, Berlin, Germany.
-      year: 1917-1933
-
-    - title: Professor of Theoretical Physics
-      institution: Karl-Ferdinand University, Prague, Czechoslovakia
-      year: 1911 - 1917
+    - title: Student Researcher
+      institution: University of Virginia
+      year: Spring 2024
       description:
+        - Hosted by Robert Parham in the McIntire School of Commerce
 
-    - title: Associate Professor of Theoretical Physics
-      institution: University of Zurich, Zurich, Switzerland
-      year: 1909 - 1911
+    - title: Student Researcher
+      institution: University of Virginia
+      year: Fall 2022
+      description:
+        - Hosted by Shawn Russell in the MAMP Lab
+
 
 - title: Open Source Projects
   type: time_table
