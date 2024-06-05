@@ -128,7 +128,7 @@ bing_site_verification: # out your bing-site-verification ID (Bing Webmaster)
 # -----------------------------------------------------------------------------
 
 blog_name: The Latent Space # blog_name will be displayed in your blog page
-blog_description: I thought the blog name was clever until I found out others had the same idea, making it less cool, but I'll stick with it for now.
+blog_description:
 permalink: /blog/:year/:title/
 lsi: true # produce an index for related posts
 
