@@ -47,7 +47,7 @@ All changes made to this file are only visible after you rebuild the website. Th
 
 ## Modifying the user and repository information
 
-The user and repository information is defined in [\_data/repositories.yml](_data/repositories.yml). You can add as many users and repositories as you want. Both informations are used in the `repositories` section.
+The users and repository information is defined in [\_data/repositories.yml](_data/repositories.yml). You can add as many users and repositories as you want. Both informations are used in the `repositories` section.
 
 ## Creating new pages
 
