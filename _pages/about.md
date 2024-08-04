@@ -19,5 +19,3 @@ Hi, I'm Varun, an undergraduate Computer Science major at the University of Virg
 I am interested in the intersection of human cognition and machine learning, aiming to develop AI systems that emulate the efficiency and adaptability of human learning. I study this in a areas such as machine perception, reinforcement learning, and neurosymbolic AI. By deepening our understanding of human intelligence on a computational level, we can concurrently develop methods to address and solve the world’s most pressing issues.
 
 In my free time, I enjoy playing/watching football (soccer), tennis, and chess. I also like to think/read about philisophy, specifically futurology.
-
-I love gaining new perspectives through conversations. If any of this piques your interest, feel free to reach out!
