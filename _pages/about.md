@@ -16,12 +16,8 @@ social: true # includes social icons at the bottom of the page
 
 Hi, I'm Varun, an undergraduate Computer Science major at the University of Virginia. I am a researcher in the <a href='https://engineering.virginia.edu/labs-groups/link-lab'>Link Lab</a>, advised by <a href='https://engineering.virginia.edu/faculty/laura-barnes'>Laura Barnes</a>.
 
-I am broadly interested in natural language processing, machine learning, and generative modeling. Recently, I have been exploring research questions such as:
+I am interested in the intersection of human cognition and machine learning, aiming to develop AI systems that emulate the efficiency and adaptability of human learning. I am particularly interested in studying domains such as machine perception, reinforcement learning, and neurosymbolic AI. By deepening our understanding of human intelligence on a computational level, we can concurrently develop methods to address and solve the world’s most pressing issues.
 
-- Can we apply our understanding of the human brain to create models that understand and emulate skills innate to humans, such as creativity and intuition?
-- How can we leverage ML methods to address real-world problems with broad social impacts, focusing on creating robust and fair solutions?
-- Can we create adaptive learning systems that can operate in dynamic and uncertain environments?
-
-In my free time, I enjoy playing football (soccer), basketball, tennis and chess. I also like to think/read about philisophy, specifically futurology.
+In my free time, I enjoy playing/watching football (soccer), tennis, and chess. I also like to think/read about philisophy, specifically futurology.
 
 I love gaining new perspectives through conversations. If any of this piques your interest, feel free to reach out!
