@@ -5,4 +5,4 @@ inline: true
 related_posts: false
 ---
 
-I was fortunate enough to recieve the UVA TYDE Research Grant</a>
+I was fortunate enough to recieve the UVA TYDE Research Grant
