@@ -1,8 +1,8 @@
 ---
 layout: post
-date: 2024-5-08 16:11:00-0400
+date: 2025-5-15 16:11:00-0400
 inline: true
 related_posts: false
 ---
 
-I was fortunate enough to recieve the UVA TYDE Research Grant
+I'll be joining Chicago Trading Company this summer as a Quantitative Trading Intern.
