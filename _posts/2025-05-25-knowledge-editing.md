@@ -95,7 +95,7 @@ For each fact to be edited, MEMIT-CSK follows a similar pattern to MEMIT by firs
 
 ### CaseEdit
 
-So how does do these various knowledge edting methods tie together for my thesis? CaseEdit serves as both a dataset creation and an evaluation pipeline specifically designed for commonsense knowledge editing in small-parameter language models. This application is targeted toward personalized, locally hosted home devices, such as edge compute devices that cannot host larger-parameter models. CaseEdit's objective is to test the plausibility of knowledge editing for household LLMs. The pipeline achieves this by generating plausible commonsense household knowledge edits using a larger-parameter model  and producing unique evaluation questions that assess the usefulness of these edits. We then apply flagship knowledge editing techniques to a CaseEdit dataset to compute valuable metrics.
+So how does do these various knowledge edting methods tie together for my thesis? CaseEdit serves as both a dataset creation and an evaluation pipeline specifically designed for commonsense knowledge editing in small-parameter language models. This application is targeted toward personalized, locally hosted home devices, such as edge compute devices that cannot host larger-parameter models. CaseEdit's objective is to test the plausibility of knowledge editing for household LLMs. The pipeline achieves this by generating plausible commonsense household knowledge edits using a larger-parameter model  and producing unique evaluation questions that assess the usefulness of these edits. We then apply flagship knowledge editing techniques to a CaseEdit dataset to compute valuable metrics. **The goal is to evaluate the viablity of household commonsense editing.**
 
 #### Commonsense Edits Generation (CaseEdit)
 
@@ -159,7 +159,7 @@ To illustrate the difference in inherent commonsense capabilities, beyond the sc
 
 Our experiments, particularly with AlphaEdit, yielded impressive results. AlphaEdit consistently outperformed other KE methods on CaseEdit across all evaluated metrics, demonstrating its strong performance even in personalized commonsense KE. Additonally, as we scaled the number of edits, AlphaEdit showed minimal ripple effects.
 
-We also analyzed the model's confidence and uncertainty as edits scaled. This was done by examining the softmax probability distribution over the five multiple-choice answers, derived from the model's output logits. To quantify this uncertainty, we employed **Shannon entropy** $$H(p)$$ of the probability distribution:
+We also analyzed the model's confidence and uncertainty as edits scaled. This was done by examining the softmax probability distribution over the five multiple-choice answers, derived from the model's output logits. To quantify this uncertainty, we employed Shannon entropy $$H(p)$$ of the probability distribution:
 
 $$H(p) = -\sum_{i \in \{A,B,C,D,E\}} p_i \log_2(p_i) \quad $$
 
