@@ -11,6 +11,8 @@ I recently graduated from UVA, and over the past few weeks I have felt a quiet o
 
 It is often said that college is not about education as much as it is about learning how to live. I think that is accurate. In many ways, these four years serve as a transitional state, an intentionally imperfect rehearsal for adulthood.
 
+This isn’t a universally proven formula or a one-size-fits-all guide. People are nuanced, and there are likely flaws in this perspective. Still, it’s a thought that has helped me and perhaps it might help someone else too.
+
 ---
 
 ## 1. Time and scheduling.
