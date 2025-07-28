@@ -4,7 +4,7 @@ date: 2025-07-27
 layout: post
 categories: [thoughts]
 ---
-Preface: This passage as a whole is pretty AI-pilled. Some of these hopes come from my inner childhood self intruiged by AI depicted in films such as TARS and JARVIS, and I recognize that certain aspects of this vision could be dangerous if pursued without caution.  Still, I believe that if carefully tested and responsibly developed, AI companions like the ones I describe here could help address some of humanity’s biggest challenges.
+*Preface: This passage as a whole is pretty AI-pilled. Some of these hopes come from my inner childhood self intruiged by AI depicted in films such as TARS and JARVIS, and I recognize that certain aspects of this vision could be dangerous if pursued without caution.  Still, I believe that if carefully tested and responsibly developed, AI companions like the ones I describe here could help address some of humanity’s biggest challenges.*
 
 ---
 
