@@ -41,7 +41,7 @@ As soon as you care about a system evolving in time, you apply $$A$$ over and ov
 
 Note: Even if $$A$$ isn’t diagonalizable, there’s a unitary basis where $$A$$ is upper-triangular with eigenvalues on the diagonal. I won't into that, all we need to know is that there is a way to set non-diagonalizable matricies to allow for growth/decay to be dictated by $$\lambda$$
 
-**Bottom line:** repeated application $A^t$ reduces to “raise eigenvalues to the $t$th power.” Which allow us to map eigenvalues to explain time evolution and therefore “memory".
+**Bottom line:** repeated application $$A^t$$ reduces to “raise eigenvalues to the $t$th power.” Which allow us to map eigenvalues to explain time evolution and therefore “memory".
 
 ---
 
