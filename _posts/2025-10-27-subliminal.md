@@ -5,7 +5,8 @@ layout: post
 categories: [technical]
 ---
 
-Here are my notes from my Lunch and Learn talk on subliminal learning. Unfortunately, I was too lazy to port over the figures and graphs from my original LaTeX notes to Markdown. If you’re interested in seeing the original LaTeX version, just email/Slack me and I can send it over!
+Here are my notes from my Lunch and Learn talk on subliminal learning. Unfortunately, I was too lazy to port over the figures and graphs from my original LaTeX notes to Markdown.
+
 
 ---
 

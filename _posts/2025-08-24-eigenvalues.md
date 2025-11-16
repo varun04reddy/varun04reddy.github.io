@@ -5,9 +5,7 @@ layout: post
 categories: [technical]
 ---
 
-Eigenvalues felt pretty abstract when I first learned about them. We’d compute $$\det(A-\lambda I)=0$$, solve a polynomial, and move on. This was in an applied linear class, and I didn’t quite get the application. It wasn’t until I started getting into comp neuro and thinking about modeling dynamical systems that things seemed to click.
-
-Here’s is an interesting way to build intution on the topic and how it relates to knowledge persistence in ML.
+Eigenvalues felt pretty abstract when I first learned about them. We’d compute $$\det(A-\lambda I)=0$$, solve a polynomial, and move on. Here’s is an interesting way to build intution on the topic and how it relates to knowledge persistence in ML.
 
 ---
 
