@@ -2,9 +2,7 @@
 title: "Memory Surgery for Continual Learning"
 date: 2024-06-10
 layout: post
-description: "On the gap between in-context adaptation and durable parametric learning, and a proposal for online knowledge consolidation via targeted weight edits."
 categories: [technical]
-tags: [llms, continual-learning, knowledge-editing]
 ---
 
 When Argentina won the 2022 World Cup, most people did not store that as an isolated sentence. You updated a cluster of linked beliefs at once: Lionel Messi finally won the tournament, Argentina were champions, the final was against France, the scoreline and the penalty shootout, maybe where the match was played, maybe how this changes how you rank Messi against Pelé and Maradona. A single new fact pulled on a whole subgraph of what you already knew about football, national teams, and individual careers. Some of those updates were small corrections. Some were new associations. Almost none of them required relearning language from scratch.

@@ -1,6 +1,6 @@
 ---
 title: "Eigenvalues and Persistence"
-date: 2025-08-24
+date: 2024-08-24
 layout: post
 categories: [technical]
 ---
