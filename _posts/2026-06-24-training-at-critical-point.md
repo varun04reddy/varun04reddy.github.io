@@ -59,8 +59,8 @@ where $$h_\theta(x)$$ is a penultimate representation. Small $$d_h$$ with fallin
 These gauges are not a complete theory. They are the minimum set that turns a loss curve into a phase diagnosis: underfit, interpolating, riding stability, collapsing, grokking.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig01-micro-macro.png" alt="Microscopic loss trajectory and macroscopic order parameters" width="900"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1. One MNIST MLP run: batch loss (left) and macroscopic gauges sharpness ratio χ and collapse order m<sub>NC</sub> (right). Loss alone does not tell you whether χ is pinned at 1 or m<sub>NC</sub> is still climbing.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig01-micro-macro.png" alt="Order-parameter dashboard: val loss, chi, and m_NC" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 1. Order-parameter dashboard on one MNIST MLP (256 hidden units, η = 0.01): validation loss (log scale), sharpness ratio χ with EOS band, and collapse order m<sub>NC</sub>. Raw traces (faint) and log-EMA / linear-EMA smooths (α = 0.07).</figcaption>
 </figure>
 
 ---
@@ -80,8 +80,13 @@ The scalar heatmap is one projection of $$\Phi$$. Boundaries in the $$(w, \eta)$
 Building the map is how the physics perspective pays off in practice. Instead of memorizing a list of phenomena in isolation, you see where double descent, edge-of-stability training, and representation collapse sit relative to the knobs you tune. Intuition becomes spatial: move learning rate up and you cross into a different dynamical regime; widen the model and you cross an interpolation boundary.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig02-phase-diagram.png" alt="Phase diagram of width vs learning rate" width="750"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2. Empirical phase map from a width × learning-rate sweep on MNIST MLPs (test accuracy at end of training).</figcaption>
+  <img src="/assets/img/blog/critical-point/fig02-phase-diagram.png" alt="Phase maps: test accuracy and test loss over width and learning rate" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 2. Width × learning-rate phase maps on MNIST MLPs: test accuracy (viridis) and test loss (magma, log color scale). Stable feature-learning sits in the high-accuracy, moderate-η interior; large η drives loss spikes at fixed width.</figcaption>
+</figure>
+
+<figure style="text-align: center;">
+  <img src="/assets/img/blog/critical-point/fig04-lazy-rich.png" alt="Feature drift d_h heatmap on width vs learning rate" width="420"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 3. Mid-training feature drift d<sub>h</sub> at epoch 3 on the same grid. Low d<sub>h</sub> marks lazy (NTK-like) sub-regions; high d<sub>h</sub> marks active feature learning inside the interpolating phase.</figcaption>
 </figure>
 
 Rough regions on this map:
@@ -94,8 +99,8 @@ Rough regions on this map:
 The knobs that move you between regions: width $$w$$ (capacity), dataset size $$n$$, $$\eta$$, batch size (noise scale), weight decay $$\lambda$$, and training time $$T$$. What transfers from physics is the method: identify regimes, measure order parameters, locate boundaries, then ask which microscopic mechanism (implicit bias, representation drift, sharpness adaptation) enforces each boundary.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/phase-transition.gif" alt="Animated grokking transition on modular addition mod 97" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Grokking on modular addition (mod 97): train accuracy rises first; test accuracy follows after a long plateau.</figcaption>
+  <img src="/assets/img/blog/critical-point/phase-transition.gif" alt="Animated grokking transition on modular addition mod 97" width="500"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Grokking on modular addition (mod 97): train accuracy rises first; test accuracy follows after a long plateau (smoothed trajectories).</figcaption>
 </figure>
 
 ---
@@ -133,8 +138,8 @@ $$
 Double descent is the statement that $$\mathcal{R}_{\text{estim}}$$ is not monotone in $$N_{\text{eff}}$$ when $$\mathcal{R}_n \to 0$$ is achievable.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig03-double-descent.png" alt="Double descent curve" width="750"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 3. Train and test loss vs parameter count on an MNIST width sweep. Vertical marker: smallest width that interpolates. The spike is the interpolation boundary projected onto one axis.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig03-double-descent.png" alt="Width sweep: val-loss trajectories and double-descent endpoint" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 4. Left: validation-loss trajectories colored by width (viridis colorbar). Right: train/test loss vs parameter count (log-log); vertical marker at smallest interpolating width. The spike is the interpolation boundary projected onto one axis; the overparameterized tail often smooths on log-log axes.</figcaption>
 </figure>
 
 ### Sharpness ratio χ and the edge of stability
@@ -160,8 +165,8 @@ On the phase map, large $$\eta$$ moves you horizontally into the EOS band. This 
 A practical estimator at step $$t$$ uses a few power iterations on $$H v$$ via Hessian-vector products. Logging $$\chi(t)$$ alongside loss separates "loss plateau because stuck" from "loss noisy because sharpness-limited."
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig04-edge-of-stability.png" alt="Edge of stability" width="850"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 4. Loss and sharpness ratio χ during SGD on an MNIST MLP. Shaded band: EOS region χ ≈ 1. Notice epochs where loss wiggles while accuracy still climbs.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig05-edge-of-stability.png" alt="Edge of stability: train loss and chi" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 5. Train loss (log scale) and sharpness ratio χ during SGD on an MNIST MLP. Shaded band: EOS region χ ≈ 1. Loss can wiggle while χ rides the stability boundary.</figcaption>
 </figure>
 
 ### Collapse order m<sub>NC</sub>
@@ -201,18 +206,13 @@ A grokking transition is the late collapse $$g(t) \to 0$$ while train accuracy r
 
 Weight decay $$\lambda$$ and training budget $$T$$ act as control knobs orthogonal to width. Large $$\lambda$$ can suppress memorization minima and accelerate the transition; too much kills train accuracy. Grokking is the cleanest demonstration that phase is not just architecture: time and regularization define basins in function space that SGD visits in order.
 
-Within the overparameterized tail of a width sweep, test loss often decreases smoothly with capacity (Figure 7). On log-log axes one sometimes sees
+Within the overparameterized tail of a width sweep, test loss often decreases smoothly with capacity (Figure 4, right panel). On log-log axes one sometimes sees
 
 $$
 \mathcal{R}_{\text{test}}(N) \approx \mathcal{R}_\infty + a \, N^{-\alpha},
 $$
 
 a scaling law inside one phase. That smoothness is intra-regime structure: excellent for extrapolation, but not a substitute for knowing where interpolation, EOS, and grokking boundaries sit.
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig07-scaling-laws.png" alt="Loss vs parameter count in overparameterized regime" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 7. Test loss vs parameter count on the overparameterized tail (post-interpolation). Power-law fits describe behavior within the rich phase, not across boundaries.</figcaption>
-</figure>
 
 ---
 
@@ -237,8 +237,8 @@ Read this as metastability: the system sits in a memorization basin with $$g(t) 
 Control knobs beyond $$(w, \eta)$$: training time $$T$$, weight decay $$\lambda$$, and data fraction (partial tables grok differently). If you only plot the first 2k steps, you conclude the model cannot generalize. If you log $$g(t)$$ to 10k–100k steps, you see the transition.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig06-grokking.png" alt="Grokking curves" width="850"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 6. Modular addition mod 97: train accuracy rises first, test accuracy follows after a long plateau. The grokking time t<sub>g</sub> is where dg/dt is maximal (steepest collapse of g).</figcaption>
+  <img src="/assets/img/blog/critical-point/fig07-grokking.png" alt="Grokking curves" width="500"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 6. Modular addition mod 97: train and test accuracy vs step (log x). Shaded region: generalization gap g = A<sub>train</sub> − A<sub>test</sub>. The grokking time t<sub>g</sub> is where dg/dt is maximal.</figcaption>
 </figure>
 
 ---
@@ -254,8 +254,8 @@ Operationally, log $$m_{\text{NC}}(t)$$ every epoch and snapshot PCA of $$h_\the
 NC also clarifies what interpolation buys you: until $$\mathcal{R}_n \approx 0$$, features are still task-aligned but not terminal. NC is the terminal geometry of the rich phase for classification, not a property of random features or the lazy regime.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig05-neural-collapse.png" alt="Neural collapse panels" width="900"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 5. PCA of penultimate features at early, middle, and late epochs (MNIST MLP). Same run as Figure 1: m<sub>NC</sub> rises after interpolation.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig06-neural-collapse.png" alt="Neural collapse panels" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 7. PCA of penultimate features at early, middle, and late epochs (MNIST MLP). Bottom: m<sub>NC</sub>(t) with EMA smooth — loss can flatten while collapse order still climbs.</figcaption>
 </figure>
 
 ---
@@ -300,4 +300,4 @@ The physics perspective is useful here because it keeps theory tied to something
 
 * Power, A., Burda, Y., Edwards, H., Babuschkin, I., & Misra, V. (2022). Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets. [arXiv:2201.02177](https://arxiv.org/abs/2201.02177).
 
-*Experiments: GPU bundle via `tools/training-at-critical-point/train_phase_blog.py`. Reproduce figures with `plot_figures.py` from `experiments/training-at-critical-point/outputs/`.*
+*Experiments: GPU bundle via `tools/training-at-critical-point/train_phase_blog.py --all`. Figures via `publish_blog_figures.py` (research-plotting skill: colormap sweeps, log-EMA smoothing, heatmap matrix CSVs under `runs/_sweeps/`).*
