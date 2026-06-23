@@ -46,47 +46,50 @@ For deep networks, the dashboard I use:
 | $$g(t)$$ | $$A_{\text{train}}(t) - A_{\text{test}}(t)$$ | Memorization vs generalization gap (grokking) |
 | Interpolation | $$\mathcal{R}_n(\theta) \to 0$$, $$N_{\text{eff}} \approx n$$ | Capacity boundary (double descent) |
 
-Two auxiliary gauges worth logging when you build a phase map:
+Two auxiliary gauges in teacher–student and representation-learning setups:
 
 $$
-d_\theta(t) = \frac{\|\theta_t - \theta_0\|_2}{\|\theta_0\|_2 + \epsilon},
-\qquad
-d_h(t) = \mathbb{E}_{x \sim \mathcal{D}}\bigl[\|h_{\theta_t}(x) - h_{\theta_0}(x)\|_2^2\bigr],
+R(t) = \text{overlap}(\theta_t, \theta^\star), \qquad
+\varepsilon_g(t) = \frac{\mathbb{E}[(f_{\theta_t}(x) - f^\star(x))^2]}{\mathrm{Var}(f^\star)},
 $$
 
-where $$h_\theta(x)$$ is a penultimate representation. Small $$d_h$$ with falling loss marks a lazy (NTK-like) regime: the function moves, representations barely move. Large $$d_h$$ marks feature learning. On a width $$\times$$ learning-rate map, lazy and rich regions often sit adjacent to underfitting and EOS bands; they are substructure inside the stable feature-learning phase, not separate topics.
+where $$\theta^\star$$ is a fixed teacher network and $$f^\star$$ its output. $$R \to 1$$ marks recovery of the teacher; $$\varepsilon_g \to 0$$ marks generalization. For penultimate features $$h_\theta(x)$$,
+
+$$
+d_h(t) = \mathbb{E}_{x}\bigl[\|h_{\theta_t}(x) - h_{\theta_0}(x)\|_2^2\bigr]
+$$
+
+tracks lazy vs rich feature learning on real data.
 
 These gauges are not a complete theory. They are the minimum set that turns a loss curve into a phase diagnosis: underfit, interpolating, riding stability, collapsing, grokking.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig01-micro-macro.png" alt="Order-parameter dashboard: val loss, chi, and m_NC" width="600"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1. Order-parameter dashboard on one MNIST MLP (256 hidden units, η = 0.01): validation loss (log scale), sharpness ratio χ with EOS band, and collapse order m<sub>NC</sub>. Raw traces (faint) and log-EMA / linear-EMA smooths (α = 0.07).</figcaption>
+  <img src="/assets/img/blog/critical-point/fig01-phase-portrait.png" alt="Phase portrait: teacher overlap vs generalization error" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 1. Teacher–student dynamics (Gaussian inputs, ReLU teacher with K* = 4 hidden units, student K = 16): trajectory in order-parameter space (R, ε<sub>g</sub>) colored by training step. The path shows recovery of teacher weights as ε<sub>g</sub> falls; panel (b) time series of both gauges.</figcaption>
 </figure>
 
 ---
 
 ## The phase map
 
-A phase map is an empirical chart: for fixed task and architecture, color each cell of a hyperparameter grid by a late-time observable (test accuracy, test loss, or an order parameter at step $$T$$). Here I sweep hidden width $$w$$ and learning rate $$\eta$$ on MNIST with a tanh MLP and color by validation accuracy after training.
+A phase map is an empirical chart: for fixed task and architecture, color each cell of a hyperparameter grid by a late-time observable. Theory papers often use **teacher–student** setups precisely because the ground-truth phase (recover the teacher or not) is known: Gaussian inputs $$x \sim \mathcal{N}(0, I_d)$$, fixed teacher $$f^\star$$, student $$f_\theta$$ trained on noisy labels $$y = f^\star(x) + \xi$$.
 
-Mathematically, think of a map
+Here I sweep student width $$K$$ and learning rate $$\eta$$ with teacher width $$K^\star = 4$$, input dimension $$d = 50$$, and $$n = 2000$$ samples:
 
 $$
-\Phi : (w, \eta) \mapsto \bigl(A_{\text{test}}(T; w, \eta),\; \chi(T; w, \eta),\; m_{\text{NC}}(T; w, \eta)\bigr).
+\Phi : (K, \eta) \mapsto \bigl(\varepsilon_g(T; K, \eta),\; R(T; K, \eta)\bigr).
 $$
 
-The scalar heatmap is one projection of $$\Phi$$. Boundaries in the $$(w, \eta)$$ plane are contours where the dominant failure mode changes: from "cannot fit" to "fits but unstable" to "fits stably." This is not a universal law of deep learning. It is a local chart for one architecture-task pair, analogous to a phase diagram cut at fixed pressure: useful precisely because it is tied to the system you actually train.
-
-Building the map is how the physics perspective pays off in practice. Instead of memorizing a list of phenomena in isolation, you see where double descent, edge-of-stability training, and representation collapse sit relative to the knobs you tune. Intuition becomes spatial: move learning rate up and you cross into a different dynamical regime; widen the model and you cross an interpolation boundary.
+Unlike MNIST sweeps where every cell reaches ~95% accuracy, the teacher–student map has **visible boundaries**: $$K < K^\*$$ underfits, large $$\eta$$ destabilizes, and the interior recovers the teacher ($$R \approx 1$$, $$\varepsilon_g \ll 1$$).
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig02-phase-diagram.png" alt="Phase maps: test accuracy and test loss over width and learning rate" width="600"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2. Width × learning-rate phase maps on MNIST MLPs: test accuracy (viridis) and test loss (magma, log color scale). Stable feature-learning sits in the high-accuracy, moderate-η interior; large η drives loss spikes at fixed width.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig02-phase-diagram.png" alt="Teacher-student phase map: gen error and overlap over K and lr" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 2. Teacher–student phase maps: generalization error ε<sub>g</sub> (magma, log scale) and teacher overlap R (viridis) over student width K × learning rate η. Underfitting at small K; instability at large η; recovery band in the interior.</figcaption>
 </figure>
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig04-lazy-rich.png" alt="Feature drift d_h heatmap on width vs learning rate" width="420"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 3. Mid-training feature drift d<sub>h</sub> at epoch 3 on the same grid. Low d<sub>h</sub> marks lazy (NTK-like) sub-regions; high d<sub>h</sub> marks active feature learning inside the interpolating phase.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig03-sample-complexity.png" alt="Sample complexity: gen error vs alpha=n/d" width="420"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 3. Sample complexity (fixed K = 16, K* = 4): ε<sub>g</sub> vs α = n/d. Classic statistical-mechanics transition as data crosses the threshold needed to identify the teacher.</figcaption>
 </figure>
 
 Rough regions on this map:
@@ -138,8 +141,8 @@ $$
 Double descent is the statement that $$\mathcal{R}_{\text{estim}}$$ is not monotone in $$N_{\text{eff}}$$ when $$\mathcal{R}_n \to 0$$ is achievable.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig03-double-descent.png" alt="Width sweep: val-loss trajectories and double-descent endpoint" width="600"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 4. Left: validation-loss trajectories colored by width (viridis colorbar). Right: train/test loss vs parameter count (log-log); vertical marker at smallest interpolating width. The spike is the interpolation boundary projected onto one axis; the overparameterized tail often smooths on log-log axes.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig04-double-descent.png" alt="Double descent in teacher-student width sweep" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 4. Teacher–student width sweep: ε<sub>g</sub> trajectories colored by K (viridis colorbar); endpoint train vs gen. error with marker at K* = 4. Spike near K ≈ K* is the interpolation boundary.</figcaption>
 </figure>
 
 ### Sharpness ratio χ and the edge of stability
@@ -165,8 +168,8 @@ On the phase map, large $$\eta$$ moves you horizontally into the EOS band. This 
 A practical estimator at step $$t$$ uses a few power iterations on $$H v$$ via Hessian-vector products. Logging $$\chi(t)$$ alongside loss separates "loss plateau because stuck" from "loss noisy because sharpness-limited."
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig05-edge-of-stability.png" alt="Edge of stability: train loss and chi" width="600"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 5. Train loss (log scale) and sharpness ratio χ during SGD on an MNIST MLP. Shaded band: EOS region χ ≈ 1. Loss can wiggle while χ rides the stability boundary.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig05-edge-of-stability.png" alt="Edge of stability: chi-loss phase portrait" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 5. Edge of stability on teacher–student (η = 0.8, SGD): parametric trajectory in (χ, train MSE) colored by step (a); χ and loss vs step with EOS band (b). Loss can oscillate while χ rides the stability boundary.</figcaption>
 </figure>
 
 ### Collapse order m<sub>NC</sub>
@@ -237,8 +240,8 @@ Read this as metastability: the system sits in a memorization basin with $$g(t) 
 Control knobs beyond $$(w, \eta)$$: training time $$T$$, weight decay $$\lambda$$, and data fraction (partial tables grok differently). If you only plot the first 2k steps, you conclude the model cannot generalize. If you log $$g(t)$$ to 10k–100k steps, you see the transition.
 
 <figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig07-grokking.png" alt="Grokking curves" width="500"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 6. Modular addition mod 97: train and test accuracy vs step (log x). Shaded region: generalization gap g = A<sub>train</sub> − A<sub>test</sub>. The grokking time t<sub>g</sub> is where dg/dt is maximal.</figcaption>
+  <img src="/assets/img/blog/critical-point/fig06-grokking.png" alt="Grokking: accuracy and generalization gap" width="600"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 6. Modular addition mod 97 (algorithmic task): train/test accuracy (a) and generalization gap g = A<sub>train</sub> − A<sub>test</sub> (b). Grokking is the late collapse of g while train accuracy stays high.</figcaption>
 </figure>
 
 ---
@@ -251,12 +254,7 @@ The loss curve can look flat while $$m_{\text{NC}}(t)$$ still climbs. Cross-entr
 
 Operationally, log $$m_{\text{NC}}(t)$$ every epoch and snapshot PCA of $$h_\theta(x)$$ on a fixed validation batch. The phase transition is visible in both: a knee in $$m_{\text{NC}}(t)$$ and a topological change in 2D projections (overlap $$\to$$ separated $$\to$$ collapsed simplex).
 
-NC also clarifies what interpolation buys you: until $$\mathcal{R}_n \approx 0$$, features are still task-aligned but not terminal. NC is the terminal geometry of the rich phase for classification, not a property of random features or the lazy regime.
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/critical-point/fig06-neural-collapse.png" alt="Neural collapse panels" width="600"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 7. PCA of penultimate features at early, middle, and late epochs (MNIST MLP). Bottom: m<sub>NC</sub>(t) with EMA smooth — loss can flatten while collapse order still climbs.</figcaption>
-</figure>
+NC also clarifies what interpolation buys you: until $$\mathcal{R}_n \approx 0$$, features are still task-aligned but not terminal. NC is the terminal geometry of the rich phase for classification, not a property of random features or the lazy regime. (Standard visualization: PCA of penultimate features at early/mid/late training plus $$m_{\text{NC}}(t)$$ — see Papyan et al.)
 
 ---
 
@@ -300,4 +298,4 @@ The physics perspective is useful here because it keeps theory tied to something
 
 * Power, A., Burda, Y., Edwards, H., Babuschkin, I., & Misra, V. (2022). Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets. [arXiv:2201.02177](https://arxiv.org/abs/2201.02177).
 
-*Experiments: GPU bundle via `tools/training-at-critical-point/train_phase_blog.py --all`. Figures via `publish_blog_figures.py` (research-plotting skill: colormap sweeps, log-EMA smoothing, heatmap matrix CSVs under `runs/_sweeps/`).*
+*Experiments: teacher–student + grokking bundle via `tools/training-at-critical-point/train_phase_blog.py --all`. Figures via `publish_blog_figures.py` (phase portraits, teacher–student phase maps, sample-complexity curve).*

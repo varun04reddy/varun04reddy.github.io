@@ -32,6 +32,18 @@ ASSETS_DIR = REPO_ROOT / "assets/img/blog/critical-point"
 DATA_ROOT = REPO_ROOT / "experiments/training-at-critical-point/data"
 SEED = 42
 
+from teacher_student import (
+    TSConfig,
+    feature_drift,
+    init_student,
+    init_teacher,
+    make_dataset,
+    mse,
+    mse_hessian_top_eig,
+    normalized_gen_error,
+    teacher_overlap,
+)
+
 
 def get_device() -> torch.device:
     if torch.cuda.is_available():
@@ -228,6 +240,256 @@ def compute_d_h(model: nn.Module, xs: torch.Tensor, h0: torch.Tensor) -> float:
 def compute_d_theta(model: nn.Module, theta0: torch.Tensor) -> float:
     theta = torch.cat([p.detach().flatten() for p in model.parameters()])
     return float((theta - theta0).norm().item() / (theta0.norm().item() + 1e-8))
+
+
+def run_ts_dynamics(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
+    """Canonical teacher–student run: log overlap R, gen error, chi along trajectory."""
+    cfg = TSConfig(input_dim=50, teacher_width=4, n_train=3000, noise_std=0.05)
+    run_cfg = {
+        "experiment": "ts_dynamics",
+        "student_width": 16,
+        "lr": 0.05,
+        "epochs": 800,
+        "batch_size": 256,
+        **cfg.__dict__,
+    }
+    run_dir = setup_run_dir(runs_root, "ts_dynamics", run_cfg)
+    logger = StepCsvLogger(run_dir)
+    teacher = init_teacher(cfg, device, SEED)
+    student = init_student(cfg, run_cfg["student_width"], device, SEED)
+    x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED)
+    x_probe = x_te[:512]
+    student.eval()
+    with torch.no_grad():
+        h0 = student.hidden(x_probe).clone()
+    opt = torch.optim.SGD(student.parameters(), lr=run_cfg["lr"], momentum=0.0)
+    mse_fn = nn.MSELoss()
+    bs = int(run_cfg["batch_size"])
+    n = len(x_tr)
+    step = 0
+    chi_every = 20
+    for epoch in range(int(run_cfg["epochs"])):
+        perm = torch.randperm(n, device=device)
+        student.train()
+        for i in range(0, n, bs):
+            idx = perm[i : i + bs]
+            x, y = x_tr[idx], y_tr[idx]
+            opt.zero_grad(set_to_none=True)
+            loss = mse_fn(student(x), y)
+            loss.backward()
+            opt.step()
+            if step % 5 == 0 or step % chi_every == 0:
+                student.eval()
+                row: dict[str, Any] = {
+                    "step": step,
+                    "epoch": epoch,
+                    "train_mse": loss.item(),
+                    "R": teacher_overlap(student, teacher),
+                    "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
+                    "d_h": feature_drift(student, x_probe, h0),
+                    "learning_rate": run_cfg["lr"],
+                }
+                if step % chi_every == 0:
+                    lam = mse_hessian_top_eig(student, x[:64], y[:64], n_iter=6)
+                    row["lambda_max"] = lam
+                    row["chi"] = run_cfg["lr"] * lam / 2.0
+                logger.log(row)
+                student.train()
+            step += 1
+    logger.flush()
+    log.info("ts dynamics finished R=%.3f eps_g=%.4f", teacher_overlap(student, teacher), row["eps_g"])
+    return run_dir
+
+
+def run_ts_phase_map(runs_root: Path, device: torch.device, log: logging.Logger) -> list[dict]:
+    """Student width × lr phase map on teacher–student task."""
+    cfg = TSConfig(input_dim=50, teacher_width=4, n_train=2000, noise_std=0.05)
+    widths = [2, 4, 8, 16, 32, 64]
+    lrs = [0.002, 0.005, 0.01, 0.03, 0.1, 0.3]
+    teacher = init_teacher(cfg, device, SEED)
+    x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED)
+    summary: list[dict] = []
+    for k in widths:
+        for lr in lrs:
+            student = init_student(cfg, k, device, SEED + k * 100 + int(lr * 1e4))
+            opt = torch.optim.SGD(student.parameters(), lr=lr, momentum=0.0)
+            mse_fn = nn.MSELoss()
+            for _ in range(600):
+                idx = torch.randint(0, len(x_tr), (256,), device=device)
+                opt.zero_grad(set_to_none=True)
+                loss = mse_fn(student(x_tr[idx]), y_tr[idx])
+                loss.backward()
+                opt.step()
+            student.eval()
+            summary.append(
+                {
+                    "student_width": k,
+                    "lr": lr,
+                    "teacher_width": cfg.teacher_width,
+                    "R": teacher_overlap(student, teacher),
+                    "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
+                    "train_mse": mse(student(x_tr), y_tr),
+                    "alpha": cfg.n_train / cfg.input_dim,
+                }
+            )
+            log.info("ts phase K=%s lr=%s eps_g=%.4f R=%.3f", k, lr, summary[-1]["eps_g"], summary[-1]["R"])
+            del student
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+    return summary
+
+
+def run_ts_width_sweep(runs_root: Path, device: torch.device, log: logging.Logger) -> None:
+    """Student width sweep → double-descent / interpolation boundary at K ≈ K*."""
+    cfg = TSConfig(input_dim=50, teacher_width=4, n_train=1500, noise_std=0.05)
+    widths = [2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96]
+    lr = 0.05
+    sweep_root = runs_root / "_sweeps" / "ts_width"
+    sweep_root.mkdir(parents=True, exist_ok=True)
+    teacher = init_teacher(cfg, device, SEED)
+    x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED)
+    summary: list[dict] = []
+    for k in widths:
+        run_dir = setup_run_dir(sweep_root, f"k{k}", {"student_width": k, "lr": lr}, fresh=True)
+        logger = StepCsvLogger(run_dir)
+        student = init_student(cfg, k, device, SEED + k)
+        opt = torch.optim.SGD(student.parameters(), lr=lr, momentum=0.0)
+        mse_fn = nn.MSELoss()
+        step = 0
+        for epoch in range(250):
+            perm = torch.randperm(len(x_tr), device=device)
+            for i in range(0, len(x_tr), 256):
+                idx = perm[i : i + 256]
+                opt.zero_grad(set_to_none=True)
+                loss = mse_fn(student(x_tr[idx]), y_tr[idx])
+                loss.backward()
+                opt.step()
+                if step % 10 == 0:
+                    student.eval()
+                    logger.log(
+                        {
+                            "step": step,
+                            "student_width": k,
+                            "train_mse": loss.item(),
+                            "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
+                            "R": teacher_overlap(student, teacher),
+                        }
+                    )
+                    student.train()
+                step += 1
+        logger.flush()
+        student.eval()
+        summary.append(
+            {
+                "student_width": k,
+                "n_params": sum(p.numel() for p in student.parameters()),
+                "train_mse": mse(student(x_tr), y_tr),
+                "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
+                "R": teacher_overlap(student, teacher),
+            }
+        )
+        log.info("ts width K=%s eps_g=%.4f R=%.3f", k, summary[-1]["eps_g"], summary[-1]["R"])
+        del student
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    pd.DataFrame(summary).to_csv(sweep_root / "summary.csv", index=False)
+    frames = [pd.read_csv(p / "metrics.csv") for p in sorted(sweep_root.glob("k*")) if (p / "metrics.csv").exists()]
+    if frames:
+        pd.concat(frames, ignore_index=True).to_csv(sweep_root / "aggregated.csv", index=False)
+
+
+def run_ts_sample_sweep(runs_root: Path, device: torch.device, log: logging.Logger) -> list[dict]:
+    """Sample complexity: gen error vs α = n/d (fixed student width)."""
+    base = TSConfig(input_dim=50, teacher_width=4, noise_std=0.05)
+    n_train_list = [100, 200, 400, 800, 1500, 3000, 6000, 12000]
+    student_k = 16
+    lr = 0.05
+    teacher = init_teacher(base, device, SEED)
+    summary: list[dict] = []
+    for n_tr in n_train_list:
+        cfg = TSConfig(input_dim=base.input_dim, teacher_width=base.teacher_width, n_train=n_tr, noise_std=base.noise_std)
+        x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED + n_tr)
+        student = init_student(cfg, student_k, device, SEED + n_tr)
+        opt = torch.optim.SGD(student.parameters(), lr=lr, momentum=0.0)
+        mse_fn = nn.MSELoss()
+        steps = max(400, n_tr // 2)
+        for _ in range(steps):
+            idx = torch.randint(0, len(x_tr), (min(256, len(x_tr)),), device=device)
+            opt.zero_grad(set_to_none=True)
+            mse_fn(student(x_tr[idx]), y_tr[idx]).backward()
+            opt.step()
+        student.eval()
+        summary.append(
+            {
+                "n_train": n_tr,
+                "alpha": n_tr / cfg.input_dim,
+                "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
+                "R": teacher_overlap(student, teacher),
+                "train_mse": mse(student(x_tr), y_tr),
+            }
+        )
+        log.info("ts sample n=%s alpha=%.1f eps_g=%.4f", n_tr, summary[-1]["alpha"], summary[-1]["eps_g"])
+        del student
+    out_dir = runs_root / "_sweeps" / "ts_sample"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(summary).to_csv(out_dir / "summary.csv", index=False)
+    return summary
+
+
+def run_ts_eos(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
+    """Edge of stability on teacher–student (SGD, high lr, MSE Hessian)."""
+    cfg = TSConfig(input_dim=50, teacher_width=4, n_train=2000, noise_std=0.05)
+    lr = 0.8
+    run_cfg = {"experiment": "ts_eos", "student_width": 16, "lr": lr, "epochs": 500}
+    run_dir = setup_run_dir(runs_root, "ts_eos", run_cfg)
+    logger = StepCsvLogger(run_dir)
+    teacher = init_teacher(cfg, device, SEED)
+    student = init_student(cfg, 16, device, SEED)
+    x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED)
+    opt = torch.optim.SGD(student.parameters(), lr=lr, momentum=0.0)
+    mse_fn = nn.MSELoss()
+    step = 0
+    chi_every = 10
+    for epoch in range(int(run_cfg["epochs"])):
+        perm = torch.randperm(len(x_tr), device=device)
+        for i in range(0, len(x_tr), 256):
+            idx = perm[i : i + 256]
+            x, y = x_tr[idx], y_tr[idx]
+            opt.zero_grad(set_to_none=True)
+            loss = mse_fn(student(x), y)
+            loss.backward()
+            opt.step()
+            if step % 3 == 0 or step % chi_every == 0:
+                row: dict[str, Any] = {"step": step, "train_mse": loss.item(), "learning_rate": lr}
+                if step % chi_every == 0:
+                    student.eval()
+                    lam = mse_hessian_top_eig(student, x[:64], y[:64], n_iter=8)
+                    row.update(
+                        {
+                            "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
+                            "R": teacher_overlap(student, teacher),
+                            "lambda_max": lam,
+                            "chi": lr * lam / 2.0,
+                        }
+                    )
+                    student.train()
+                logger.log(row)
+            step += 1
+    logger.flush()
+    log.info("ts eos finished (%s steps)", step)
+    return run_dir
+
+
+def write_ts_matrices(phase_summary: list[dict], runs_root: Path) -> None:
+    if not phase_summary:
+        return
+    mat_dir = runs_root / "_sweeps" / "ts_phase" / "matrices"
+    mat_dir.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame(phase_summary)
+    for col, fname in [("eps_g", "eps_g_matrix.csv"), ("R", "overlap_matrix.csv")]:
+        pivot = df.pivot(index="student_width", columns="lr", values=col)
+        pivot.to_csv(mat_dir / fname)
+    df.to_csv(runs_root / "_sweeps" / "ts_phase" / "summary.csv", index=False)
 
 
 def run_dashboard(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
@@ -669,20 +931,20 @@ def plot_run_figures(assets_dir: Path) -> None:
 def run_all_experiments(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
     device = get_device()
     set_seed(SEED)
-    bundle_log = setup_logger(setup_run_dir(runs_root, "_bundle", {"experiment": "bundle"}, fresh=False))
+    bundle_log = setup_logger(setup_run_dir(runs_root, "_bundle", {"experiment": "theory_bundle"}, fresh=False))
     bundle_log.info("Device: %s", device)
 
-    run_dashboard(runs_root, device, bundle_log)
-    phase_summary = run_phase_diagram(runs_root, device, bundle_log)
-    write_sweep_matrices(phase_summary, runs_root)
-    run_width_sweep(runs_root, device, bundle_log)
+    run_ts_dynamics(runs_root, device, bundle_log)
+    ts_phase = run_ts_phase_map(runs_root, device, bundle_log)
+    write_ts_matrices(ts_phase, runs_root)
+    run_ts_width_sweep(runs_root, device, bundle_log)
+    run_ts_sample_sweep(runs_root, device, bundle_log)
+    eos_dir = run_ts_eos(runs_root, device, bundle_log)
     grok_dir = run_grokking(runs_root, device, bundle_log)
-    eos_dir = run_edge_of_stability(runs_root, device, bundle_log)
-    nc_dir = run_neural_collapse_snaps(runs_root, device, bundle_log)
 
-    write_legacy_outputs(runs_root, legacy_out, phase_summary, grok_dir, eos_dir, nc_dir)
+    write_legacy_outputs(runs_root, legacy_out, ts_phase, grok_dir, eos_dir, Path())
     plot_run_figures(assets_dir)
-    bundle_log.info("Figures published to %s", assets_dir)
+    bundle_log.info("Theory figures published to %s", assets_dir)
 
 
 def run_grokking_only(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
