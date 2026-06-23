@@ -108,14 +108,23 @@ def normalized_gen_error(student: TwoLayerReLU, teacher: TwoLayerReLU, x: torch.
 
 
 @torch.no_grad()
-def teacher_overlap(student: TwoLayerReLU, teacher: TwoLayerReLU) -> float:
-    """Max-mean absolute cosine overlap between student and teacher first-layer rows."""
+def overlap_matrix(student: TwoLayerReLU, teacher: TwoLayerReLU) -> torch.Tensor:
+    """Absolute cosine overlaps: shape (K_student, K_teacher)."""
     ws = F.normalize(student.first_layer_weights(), dim=1)
     wt = F.normalize(teacher.first_layer_weights(), dim=1)
-    cos = (ws @ wt.T).abs()
-    # Greedy matching: each teacher neuron matched to best student neuron
-    matched = cos.max(dim=0).values
-    return float(matched.mean().item())
+    return (ws @ wt.T).abs()
+
+
+@torch.no_grad()
+def per_teacher_overlap(student: TwoLayerReLU, teacher: TwoLayerReLU) -> torch.Tensor:
+    """Best student match per teacher neuron, shape (K_teacher,)."""
+    return overlap_matrix(student, teacher).max(dim=0).values
+
+
+@torch.no_grad()
+def teacher_overlap(student: TwoLayerReLU, teacher: TwoLayerReLU) -> float:
+    """Mean per-teacher overlap R = (1/K*) sum_j max_i |cos(w_i, w*_j)|."""
+    return float(per_teacher_overlap(student, teacher).mean().item())
 
 
 @torch.no_grad()
