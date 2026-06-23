@@ -41,6 +41,8 @@ from teacher_student import (
     mse,
     mse_hessian_top_eig,
     normalized_gen_error,
+    overlap_matrix,
+    per_teacher_overlap,
     teacher_overlap,
 )
 
@@ -243,7 +245,7 @@ def compute_d_theta(model: nn.Module, theta0: torch.Tensor) -> float:
 
 
 def run_ts_dynamics(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
-    """Canonical teacher–student run: log overlap R, gen error, chi along trajectory."""
+    """Canonical teacher–student run: macroscopic + microscopic order parameters."""
     cfg = TSConfig(input_dim=50, teacher_width=4, n_train=3000, noise_std=0.05)
     run_cfg = {
         "experiment": "ts_dynamics",
@@ -258,16 +260,27 @@ def run_ts_dynamics(runs_root: Path, device: torch.device, log: logging.Logger) 
     teacher = init_teacher(cfg, device, SEED)
     student = init_student(cfg, run_cfg["student_width"], device, SEED)
     x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED)
-    x_probe = x_te[:512]
-    student.eval()
-    with torch.no_grad():
-        h0 = student.hidden(x_probe).clone()
     opt = torch.optim.SGD(student.parameters(), lr=run_cfg["lr"], momentum=0.0)
     mse_fn = nn.MSELoss()
     bs = int(run_cfg["batch_size"])
     n = len(x_tr)
     step = 0
-    chi_every = 20
+    log_every = 5
+    snap_targets = {0, 50, 200, 800, 2400, 4800}
+    align_rows: list[dict[str, Any]] = []
+
+    def record_alignment(tag_step: int) -> None:
+        student.eval()
+        mat = overlap_matrix(student, teacher).cpu().numpy()
+        for si in range(mat.shape[0]):
+            for ti in range(mat.shape[1]):
+                align_rows.append(
+                    {"step": tag_step, "s_neuron": si, "t_neuron": ti, "overlap": float(mat[si, ti])}
+                )
+        student.train()
+
+    record_alignment(0)
+    row: dict[str, Any] = {}
     for epoch in range(int(run_cfg["epochs"])):
         perm = torch.randperm(n, device=device)
         student.train()
@@ -278,26 +291,32 @@ def run_ts_dynamics(runs_root: Path, device: torch.device, log: logging.Logger) 
             loss = mse_fn(student(x), y)
             loss.backward()
             opt.step()
-            if step % 5 == 0 or step % chi_every == 0:
+            if step % log_every == 0:
                 student.eval()
-                row: dict[str, Any] = {
+                r_per = per_teacher_overlap(student, teacher).cpu().numpy()
+                row = {
                     "step": step,
                     "epoch": epoch,
                     "train_mse": loss.item(),
                     "R": teacher_overlap(student, teacher),
                     "eps_g": normalized_gen_error(student, teacher, x_te, y_te),
-                    "d_h": feature_drift(student, x_probe, h0),
                     "learning_rate": run_cfg["lr"],
                 }
-                if step % chi_every == 0:
-                    lam = mse_hessian_top_eig(student, x[:64], y[:64], n_iter=6)
-                    row["lambda_max"] = lam
-                    row["chi"] = run_cfg["lr"] * lam / 2.0
+                for j, rv in enumerate(r_per):
+                    row[f"R_t{j}"] = float(rv)
                 logger.log(row)
                 student.train()
+            if step in snap_targets:
+                record_alignment(step)
             step += 1
+    record_alignment(step)
     logger.flush()
-    log.info("ts dynamics finished R=%.3f eps_g=%.4f", teacher_overlap(student, teacher), row["eps_g"])
+    snap_path = run_dir / "alignment_snapshots.csv"
+    with snap_path.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["step", "s_neuron", "t_neuron", "overlap"])
+        w.writeheader()
+        w.writerows(align_rows)
+    log.info("ts dynamics finished R=%.3f eps_g=%.4f (%s align rows)", row["R"], row["eps_g"], len(align_rows))
     return run_dir
 
 
@@ -937,14 +956,9 @@ def run_all_experiments(runs_root: Path, legacy_out: Path, assets_dir: Path) -> 
     run_ts_dynamics(runs_root, device, bundle_log)
     ts_phase = run_ts_phase_map(runs_root, device, bundle_log)
     write_ts_matrices(ts_phase, runs_root)
-    run_ts_width_sweep(runs_root, device, bundle_log)
     run_ts_sample_sweep(runs_root, device, bundle_log)
-    eos_dir = run_ts_eos(runs_root, device, bundle_log)
-    grok_dir = run_grokking(runs_root, device, bundle_log)
-
-    write_legacy_outputs(runs_root, legacy_out, ts_phase, grok_dir, eos_dir, Path())
     plot_run_figures(assets_dir)
-    bundle_log.info("Theory figures published to %s", assets_dir)
+    bundle_log.info("Teacher–student figures published to %s", assets_dir)
 
 
 def run_grokking_only(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
