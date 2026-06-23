@@ -1,6 +1,6 @@
 ---
 title: "Training at the Critical Point"
-date: 2026-06-24
+date: 2026-06-22
 layout: post
 description: "Deep learning is easier to reason about with order parameters and an empirical phase map of training regimes."
 categories: [technical]
