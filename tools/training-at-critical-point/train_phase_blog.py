@@ -46,11 +46,13 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-def setup_run_dir(runs_root: Path, run_name: str, config: dict[str, Any]) -> Path:
+def setup_run_dir(runs_root: Path, run_name: str, config: dict[str, Any], *, fresh: bool = True) -> Path:
     run_dir = runs_root / run_name
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "logs").mkdir(exist_ok=True)
     (run_dir / "figures").mkdir(exist_ok=True)
+    if fresh and (run_dir / "metrics.csv").exists():
+        (run_dir / "metrics.csv").unlink()
     with (run_dir / "config.yaml").open("w") as f:
         yaml.safe_dump(config, f, sort_keys=False)
     return run_dir
@@ -217,6 +219,79 @@ def hessian_top_eig(
     return float(lam)
 
 
+def compute_d_h(model: nn.Module, xs: torch.Tensor, h0: torch.Tensor) -> float:
+    with torch.no_grad():
+        h = model.penultimate(xs)
+        return float(((h - h0) ** 2).mean().item())
+
+
+def compute_d_theta(model: nn.Module, theta0: torch.Tensor) -> float:
+    theta = torch.cat([p.detach().flatten() for p in model.parameters()])
+    return float((theta - theta0).norm().item() / (theta0.norm().item() + 1e-8))
+
+
+def run_dashboard(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
+    """Canonical MNIST run: dense step logging for order-parameter dashboard."""
+    cfg = {"experiment": "dashboard", "width": 256, "lr": 0.01, "epochs": 10, "log_every": 1}
+    run_dir = setup_run_dir(runs_root, "dashboard_mnist", cfg)
+    logger = StepCsvLogger(run_dir)
+    train_loader, test_loader = mnist_loaders()
+    model = MLPClassifier(256).to(device)
+    theta0 = torch.cat([p.detach().flatten() for p in model.parameters()])
+    xs_probe, _ = next(iter(test_loader))
+    xs_probe = xs_probe[:256].to(device)
+    model.eval()
+    with torch.no_grad():
+        h0 = model.penultimate(xs_probe).clone()
+    opt = torch.optim.SGD(model.parameters(), lr=cfg["lr"], momentum=0.9, weight_decay=1e-4)
+    ce = nn.CrossEntropyLoss()
+    step = 0
+    chi_every = 20
+    val_every = 10
+    for epoch in range(int(cfg["epochs"])):
+        model.train()
+        for x, y in train_loader:
+            x, y = x.to(device), y.to(device)
+            opt.zero_grad(set_to_none=True)
+            loss = ce(model(x), y)
+            loss.backward()
+            grad_norm = torch.sqrt(
+                sum(p.grad.detach().pow(2).sum() for p in model.parameters() if p.grad is not None)
+            ).item()
+            opt.step()
+            row: dict[str, Any] = {
+                "step": step,
+                "epoch": epoch,
+                "train_loss": loss.item(),
+                "grad_norm": grad_norm,
+                "learning_rate": cfg["lr"],
+            }
+            if step % val_every == 0:
+                val = evaluate(model, test_loader, device)
+                with torch.no_grad():
+                    feats = model.penultimate(x[:64])
+                    m_nc = neural_collapse_order(feats, y[:64])
+                row.update(
+                    {
+                        "val_loss": val.test_loss,
+                        "val_acc": val.test_acc,
+                        "m_nc": m_nc,
+                        "d_theta": compute_d_theta(model, theta0),
+                        "d_h": compute_d_h(model, xs_probe, h0),
+                    }
+                )
+            if step % chi_every == 0:
+                lam = hessian_top_eig(model, x[:16], y[:16], device, n_iter=6)
+                row["lambda_max"] = lam
+                row["chi"] = cfg["lr"] * lam / 2.0
+            if step % int(cfg["log_every"]) == 0 or step % val_every == 0 or step % chi_every == 0:
+                logger.log(row)
+            step += 1
+    logger.flush()
+    log.info("dashboard run finished (%s steps)", step)
+    return run_dir
+
+
 def try_make_default_figures(run_dir: Path) -> None:
     skill_root = Path(os.environ.get("AGENT_SKILLS_ROOT", Path.home() / ".agent-skills"))
     rp = skill_root / "research-plotting" / "scripts"
@@ -232,19 +307,24 @@ def try_make_default_figures(run_dir: Path) -> None:
 
 
 def run_phase_diagram(runs_root: Path, device: torch.device, log: logging.Logger) -> list[dict]:
-    """Width × lr sweep for fig02. Train fast; one test eval per run (heatmap needs only final acc)."""
+    """Width × lr sweep; record final metrics + mid-training feature drift d_h."""
     widths = [32, 64, 128, 256, 512, 1024]
     lrs = [0.002, 0.005, 0.01, 0.02, 0.05]
     train_loader, test_loader = mnist_loaders()
+    xs_probe, _ = next(iter(test_loader))
+    xs_probe = xs_probe[:256].to(device)
     summary: list[dict] = []
     for w in widths:
         for lr in lrs:
-            run_name = f"phase_w{w}_lr{lr:g}"
             cfg = {"experiment": "phase_diagram", "width": w, "lr": lr, "epochs": 6, "dataset": "MNIST"}
-            run_dir = setup_run_dir(runs_root, run_name, cfg)
+            run_dir = setup_run_dir(runs_root, f"phase_w{w}_lr{lr:g}", cfg, fresh=False)
             model = MLPClassifier(w).to(device)
+            model.eval()
+            with torch.no_grad():
+                h0 = model.penultimate(xs_probe).clone()
             opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
             ce = nn.CrossEntropyLoss()
+            d_h_mid = float("nan")
             for epoch in range(cfg["epochs"]):
                 model.train()
                 for x, y in train_loader:
@@ -252,6 +332,8 @@ def run_phase_diagram(runs_root: Path, device: torch.device, log: logging.Logger
                     opt.zero_grad(set_to_none=True)
                     ce(model(x), y).backward()
                     opt.step()
+                if epoch == 2:
+                    d_h_mid = compute_d_h(model, xs_probe, h0)
             final = full_train_eval(model, train_loader, test_loader, device)
             summary.append(
                 {
@@ -261,13 +343,97 @@ def run_phase_diagram(runs_root: Path, device: torch.device, log: logging.Logger
                     "final_test_acc": final.test_acc,
                     "final_train_acc": final.train_acc,
                     "final_test_loss": final.test_loss,
+                    "d_h_epoch3": d_h_mid,
                 }
             )
-            log.info("phase w=%s lr=%s val_acc=%.3f", w, lr, final.test_acc)
+            log.info("phase w=%s lr=%s val_acc=%.3f d_h=%.4f", w, lr, final.test_acc, d_h_mid)
             del model
             if device.type == "cuda":
                 torch.cuda.empty_cache()
     return summary
+
+
+def run_width_sweep(runs_root: Path, device: torch.device, log: logging.Logger) -> None:
+    """Width sweep at fixed lr with dense val_loss logging for sweep curves."""
+    widths = [16, 32, 64, 128, 256, 512, 1024, 2048]
+    lr = 0.01
+    sweep_root = runs_root / "_sweeps" / "width_sweep"
+    sweep_root.mkdir(parents=True, exist_ok=True)
+    train_loader, test_loader = mnist_loaders()
+    summary: list[dict] = []
+    for w in widths:
+        cfg = {"experiment": "width_sweep", "width": w, "lr": lr, "epochs": 12}
+        run_dir = setup_run_dir(runs_root / "_sweeps" / "width_sweep", f"w{w}", cfg)
+        logger = StepCsvLogger(run_dir)
+        model = MLPClassifier(w).to(device)
+        opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4)
+        ce = nn.CrossEntropyLoss()
+        step = 0
+        for epoch in range(int(cfg["epochs"])):
+            model.train()
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                opt.zero_grad(set_to_none=True)
+                loss = ce(model(x), y)
+                loss.backward()
+                opt.step()
+                if step % 5 == 0:
+                    val = evaluate(model, test_loader, device)
+                    logger.log(
+                        {
+                            "step": step,
+                            "epoch": epoch,
+                            "width": w,
+                            "train_loss": loss.item(),
+                            "val_loss": val.test_loss,
+                            "val_acc": val.test_acc,
+                            "learning_rate": lr,
+                        }
+                    )
+                step += 1
+        logger.flush()
+        final = full_train_eval(model, train_loader, test_loader, device)
+        summary.append(
+            {
+                "width": w,
+                "n_params": sum(p.numel() for p in model.parameters()),
+                "train_loss": final.train_loss,
+                "test_loss": final.test_loss,
+                "train_acc": final.train_acc,
+                "test_acc": final.test_acc,
+            }
+        )
+        log.info("width w=%s test_acc=%.3f", w, final.test_acc)
+        del model
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    pd.DataFrame(summary).to_csv(sweep_root / "summary.csv", index=False)
+    frames = []
+    for run_dir in sorted(sweep_root.glob("w*")):
+        m = run_dir / "metrics.csv"
+        if m.exists():
+            frames.append(pd.read_csv(m))
+    if frames:
+        pd.concat(frames, ignore_index=True).to_csv(sweep_root / "aggregated.csv", index=False)
+
+
+def write_sweep_matrices(phase_summary: list[dict], runs_root: Path) -> None:
+    """Save heatmap CSVs under runs/_sweeps/phase_w_lr/matrices/."""
+    if not phase_summary:
+        return
+    mat_dir = runs_root / "_sweeps" / "phase_w_lr" / "matrices"
+    mat_dir.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame(phase_summary)
+    for col, fname in [
+        ("final_test_acc", "test_acc_matrix.csv"),
+        ("final_test_loss", "test_loss_matrix.csv"),
+        ("d_h_epoch3", "d_h_matrix.csv"),
+    ]:
+        if col not in df.columns:
+            continue
+        pivot = df.pivot(index="width", columns="lr", values=col)
+        pivot.to_csv(mat_dir / fname)
+    df.to_csv(runs_root / "_sweeps" / "phase_w_lr" / "summary.csv", index=False)
 
 
 def run_grokking(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
@@ -306,7 +472,7 @@ def run_grokking(runs_root: Path, device: torch.device, log: logging.Logger) -> 
         "steps": 50000,
         "weight_decay": 1.0,
         "lr": 1e-3,
-        "log_every": 200,
+        "log_every": 50,
         "train_fraction": 0.4,
     }
     run_dir = setup_run_dir(runs_root, "grokking_mod97", cfg)
@@ -355,8 +521,8 @@ def run_grokking(runs_root: Path, device: torch.device, log: logging.Logger) -> 
 
 def run_edge_of_stability(runs_root: Path, device: torch.device, log: logging.Logger) -> Path:
     lr = 0.05
-    chi_every = 100
-    cfg = {"experiment": "edge_of_stability", "width": 256, "lr": lr, "chi_log_every": chi_every, "epochs": 8}
+    chi_every = 15
+    cfg = {"experiment": "edge_of_stability", "width": 256, "lr": lr, "chi_log_every": chi_every, "epochs": 10}
     run_dir = setup_run_dir(runs_root, "eos_mnist_mlp", cfg)
     logger = StepCsvLogger(run_dir)
     train_loader, test_loader = mnist_loaders()
@@ -372,28 +538,31 @@ def run_edge_of_stability(runs_root: Path, device: torch.device, log: logging.Lo
             loss = ce(model(x), y)
             loss.backward()
             opt.step()
-            if step % chi_every == 0:
-                theta = torch.cat([p.detach().flatten() for p in model.parameters()])
-                with torch.no_grad():
-                    feats = model.penultimate(x[:64])
-                    m_nc = neural_collapse_order(feats, y[:64])
-                lam = hessian_top_eig(model, x[:16], y[:16], device, n_iter=8)
-                chi = lr * lam / 2.0
-                val = evaluate(model, test_loader, device)
-                logger.log(
-                    {
-                        "step": step,
-                        "epoch": epoch,
-                        "train_loss": loss.item(),
-                        "val_loss": val.test_loss,
-                        "val_acc": val.test_acc,
-                        "lambda_max": lam,
-                        "chi": chi,
-                        "m_nc": m_nc,
-                        "theta_dist": (theta - theta0).norm().item() / (theta0.norm().item() + 1e-8),
-                        "learning_rate": lr,
-                    }
-                )
+            if step % 5 == 0 or step % chi_every == 0:
+                row: dict[str, Any] = {
+                    "step": step,
+                    "epoch": epoch,
+                    "train_loss": loss.item(),
+                    "learning_rate": lr,
+                }
+                if step % chi_every == 0:
+                    theta = torch.cat([p.detach().flatten() for p in model.parameters()])
+                    with torch.no_grad():
+                        feats = model.penultimate(x[:64])
+                        m_nc = neural_collapse_order(feats, y[:64])
+                    lam = hessian_top_eig(model, x[:16], y[:16], device, n_iter=6)
+                    val = evaluate(model, test_loader, device)
+                    row.update(
+                        {
+                            "val_loss": val.test_loss,
+                            "val_acc": val.test_acc,
+                            "lambda_max": lam,
+                            "chi": lr * lam / 2.0,
+                            "m_nc": m_nc,
+                            "theta_dist": (theta - theta0).norm().item() / (theta0.norm().item() + 1e-8),
+                        }
+                    )
+                logger.log(row)
             step += 1
     logger.flush()
     log.info("edge-of-stability run finished (%s steps)", step)
@@ -405,6 +574,8 @@ def run_neural_collapse_snaps(runs_root: Path, device: torch.device, log: loggin
     run_dir = setup_run_dir(runs_root, "neural_collapse_mnist", cfg)
     logger = StepCsvLogger(run_dir)
     train_loader, test_loader = mnist_loaders()
+    xs_nc, ys_nc = next(iter(test_loader))
+    xs_nc, ys_nc = xs_nc[:512].to(device), ys_nc[:512].to(device)
     model = MLPClassifier(512).to(device)
     opt = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4)
     ce = nn.CrossEntropyLoss()
@@ -417,18 +588,23 @@ def run_neural_collapse_snaps(runs_root: Path, device: torch.device, log: loggin
             opt.zero_grad(set_to_none=True)
             ce(model(x), y).backward()
             opt.step()
+            if step % 10 == 0:
+                with torch.no_grad():
+                    m_nc = neural_collapse_order(model.penultimate(xs_nc), ys_nc)
+                row: dict[str, Any] = {"step": step, "epoch": epoch, "m_nc": m_nc}
+                if step % 200 == 0:
+                    row["val_acc"] = evaluate(model, test_loader, device).test_acc
+                logger.log(row)
             step += 1
-        xs, ys = next(iter(test_loader))
-        xs, ys = xs.to(device), ys.to(device)
         with torch.no_grad():
-            feats = model.penultimate(xs).cpu().numpy()
-            m_nc = neural_collapse_order(model.penultimate(xs), ys)
-        labels = ys.cpu().numpy()
+            feats = model.penultimate(xs_nc).cpu().numpy()
+            m_nc = neural_collapse_order(model.penultimate(xs_nc), ys_nc)
+        labels = ys_nc.cpu().numpy()
         pca = PCA(n_components=2, random_state=SEED)
         coords = pca.fit_transform(feats)
         for i in range(coords.shape[0]):
             snap_rows.append({"epoch": epoch, "x": coords[i, 0], "y": coords[i, 1], "label": int(labels[i])})
-        logger.log({"step": step, "epoch": epoch, "m_nc": m_nc, "val_acc": evaluate(model, test_loader, device).test_acc})
+        logger.log({"step": step, "epoch": epoch, "m_nc": m_nc})
     logger.flush()
     snap_path = run_dir / "neural_collapse_snapshots.csv"
     with snap_path.open("w", newline="") as f:
@@ -483,55 +659,30 @@ def write_legacy_outputs(
     (legacy_out / "meta.json").write_text(json.dumps(meta, indent=2))
 
 
-def plot_run_figures(legacy_out: Path, assets_dir: Path) -> None:
+def plot_run_figures(assets_dir: Path) -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from plot_figures import fig02_phase_diagram, fig04_edge_of_stability, fig05_neural_collapse, fig06_grokking
+    from publish_blog_figures import publish_all
 
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    fig02_phase_diagram(legacy_out, assets_dir)
-    fig04_edge_of_stability(legacy_out, assets_dir)
-    fig05_neural_collapse(legacy_out, assets_dir)
-    fig06_grokking(legacy_out, assets_dir)
+    publish_all(assets_dir)
 
 
-def make_grokking_gif(legacy_out: Path, assets_dir: Path) -> Path:
-    """Animate train vs test accuracy during grokking (phase-transition style)."""
-    path = legacy_out / "grokking.csv"
-    if not path.exists():
-        raise FileNotFoundError(path)
-    df = pd.read_csv(path)
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    gif_path = assets_dir / "phase-transition.gif"
+def run_all_experiments(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
+    device = get_device()
+    set_seed(SEED)
+    bundle_log = setup_logger(setup_run_dir(runs_root, "_bundle", {"experiment": "bundle"}, fresh=False))
+    bundle_log.info("Device: %s", device)
 
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from style import PALETTE, apply_style
+    run_dashboard(runs_root, device, bundle_log)
+    phase_summary = run_phase_diagram(runs_root, device, bundle_log)
+    write_sweep_matrices(phase_summary, runs_root)
+    run_width_sweep(runs_root, device, bundle_log)
+    grok_dir = run_grokking(runs_root, device, bundle_log)
+    eos_dir = run_edge_of_stability(runs_root, device, bundle_log)
+    nc_dir = run_neural_collapse_snaps(runs_root, device, bundle_log)
 
-    apply_style()
-    fig, ax = plt.subplots(figsize=(7, 4))
-    (line_tr,) = ax.plot([], [], color=PALETTE["accent"], lw=2, label="train acc")
-    (line_te,) = ax.plot([], [], color=PALETTE["test"], lw=2, label="test acc")
-    ax.set_xscale("log")
-    ax.set_xlim(max(df["step"].min(), 1), df["step"].max())
-    ax.set_ylim(-0.05, 1.05)
-    ax.set_xlabel("training step")
-    ax.set_ylabel("accuracy")
-    ax.set_title("Grokking phase transition (mod 97)")
-    ax.legend(loc="lower right")
-
-    frame_idx = np.linspace(0, len(df) - 1, num=min(120, len(df)), dtype=int)
-
-    def update(i: int):
-        frame = frame_idx[i]
-        sub = df.iloc[: frame + 1]
-        steps = np.maximum(sub["step"].values, 1)
-        line_tr.set_data(steps, sub["train_acc"].values)
-        line_te.set_data(steps, sub["test_acc"].values)
-        return line_tr, line_te
-
-    anim = FuncAnimation(fig, update, frames=len(frame_idx), interval=80, blit=False)
-    anim.save(gif_path, writer=PillowWriter(fps=12))
-    plt.close(fig)
-    return gif_path
+    write_legacy_outputs(runs_root, legacy_out, phase_summary, grok_dir, eos_dir, nc_dir)
+    plot_run_figures(assets_dir)
+    bundle_log.info("Figures published to %s", assets_dir)
 
 
 def run_grokking_only(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
@@ -544,30 +695,8 @@ def run_grokking_only(runs_root: Path, legacy_out: Path, assets_dir: Path) -> No
     grok_metrics = grok_dir / "metrics.csv"
     if grok_metrics.exists():
         grokking_metrics_to_legacy(pd.read_csv(grok_metrics)).to_csv(legacy_out / "grokking.csv", index=False)
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from plot_figures import fig06_grokking
-
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    fig06_grokking(legacy_out, assets_dir)
-    gif_path = make_grokking_gif(legacy_out, assets_dir)
-    bundle_log.info("GIF saved: %s", gif_path)
-
-
-def run_all_experiments(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
-    device = get_device()
-    set_seed(SEED)
-    bundle_log = setup_logger(setup_run_dir(runs_root, "_bundle", {"experiment": "bundle"}))
-    bundle_log.info("Device: %s", device)
-
-    phase_summary = run_phase_diagram(runs_root, device, bundle_log)
-    grok_dir = run_grokking(runs_root, device, bundle_log)
-    eos_dir = run_edge_of_stability(runs_root, device, bundle_log)
-    nc_dir = run_neural_collapse_snaps(runs_root, device, bundle_log)
-
-    write_legacy_outputs(runs_root, legacy_out, phase_summary, grok_dir, eos_dir, nc_dir)
-    plot_run_figures(legacy_out, assets_dir)
-    gif_path = make_grokking_gif(legacy_out, assets_dir)
-    bundle_log.info("GIF saved: %s", gif_path)
+    plot_run_figures(assets_dir)
+    bundle_log.info("Grokking figures published")
 
 
 def parse_args() -> argparse.Namespace:
