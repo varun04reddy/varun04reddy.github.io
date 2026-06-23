@@ -1,0 +1,5 @@
+Host: holygpu8a19101.rc.fas.harvard.edu
+CUDA: True NVIDIA A100-SXM4-40GB
+Device: cuda
+grokking done final train_acc=1.000 test_acc=1.000
+GIF saved: /n/home00/varunreddy/varun04reddy.github.io/assets/img/blog/critical-point/phase-transition.gif

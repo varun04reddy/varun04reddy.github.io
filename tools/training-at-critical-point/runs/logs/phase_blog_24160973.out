@@ -1,0 +1,37 @@
+Host: holygpu8a19204.rc.fas.harvard.edu
+CUDA: True NVIDIA A100-SXM4-40GB
+Device: cuda
+phase w=32 lr=0.002 val_acc=0.878
+phase w=32 lr=0.005 val_acc=0.905
+phase w=32 lr=0.01 val_acc=0.924
+phase w=32 lr=0.02 val_acc=0.933
+phase w=32 lr=0.05 val_acc=0.941
+phase w=64 lr=0.002 val_acc=0.885
+phase w=64 lr=0.005 val_acc=0.913
+phase w=64 lr=0.01 val_acc=0.921
+phase w=64 lr=0.02 val_acc=0.935
+phase w=64 lr=0.05 val_acc=0.941
+phase w=128 lr=0.002 val_acc=0.890
+phase w=128 lr=0.005 val_acc=0.915
+phase w=128 lr=0.01 val_acc=0.932
+phase w=128 lr=0.02 val_acc=0.940
+phase w=128 lr=0.05 val_acc=0.952
+phase w=256 lr=0.002 val_acc=0.893
+phase w=256 lr=0.005 val_acc=0.917
+phase w=256 lr=0.01 val_acc=0.936
+phase w=256 lr=0.02 val_acc=0.945
+phase w=256 lr=0.05 val_acc=0.957
+phase w=512 lr=0.002 val_acc=0.895
+phase w=512 lr=0.005 val_acc=0.924
+phase w=512 lr=0.01 val_acc=0.936
+phase w=512 lr=0.02 val_acc=0.951
+phase w=512 lr=0.05 val_acc=0.961
+phase w=1024 lr=0.002 val_acc=0.904
+phase w=1024 lr=0.005 val_acc=0.923
+phase w=1024 lr=0.01 val_acc=0.937
+phase w=1024 lr=0.02 val_acc=0.953
+phase w=1024 lr=0.05 val_acc=0.961
+grokking done final train_acc=0.234 test_acc=0.052
+edge-of-stability run finished (504 steps)
+neural collapse snapshots: 7680 rows
+GIF saved: /n/home00/varunreddy/varun04reddy.github.io/assets/img/blog/critical-point/phase-transition.gif
