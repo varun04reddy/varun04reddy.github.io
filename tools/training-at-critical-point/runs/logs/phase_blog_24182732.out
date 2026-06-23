@@ -1,0 +1,3 @@
+Host: holygpu8a19401.rc.fas.harvard.edu
+CUDA: True NVIDIA A100-SXM4-40GB
+Device: cuda
