@@ -1,0 +1,47 @@
+Host: holygpu8a19503.rc.fas.harvard.edu
+CUDA: True NVIDIA A100-SXM4-40GB
+Device: cuda
+dashboard run finished (630 steps)
+phase w=32 lr=0.002 val_acc=0.879 d_h=4.3298
+phase w=32 lr=0.005 val_acc=0.908 d_h=8.4595
+phase w=32 lr=0.01 val_acc=0.923 d_h=8.7921
+phase w=32 lr=0.02 val_acc=0.933 d_h=6.1621
+phase w=32 lr=0.05 val_acc=0.937 d_h=4.9366
+phase w=64 lr=0.002 val_acc=0.885 d_h=2.2575
+phase w=64 lr=0.005 val_acc=0.917 d_h=4.6686
+phase w=64 lr=0.01 val_acc=0.925 d_h=4.0842
+phase w=64 lr=0.02 val_acc=0.937 d_h=3.1057
+phase w=64 lr=0.05 val_acc=0.945 d_h=2.5320
+phase w=128 lr=0.002 val_acc=0.890 d_h=1.2158
+phase w=128 lr=0.005 val_acc=0.911 d_h=2.1807
+phase w=128 lr=0.01 val_acc=0.924 d_h=2.2488
+phase w=128 lr=0.02 val_acc=0.942 d_h=1.5004
+phase w=128 lr=0.05 val_acc=0.951 d_h=1.2140
+phase w=256 lr=0.002 val_acc=0.897 d_h=0.6469
+phase w=256 lr=0.005 val_acc=0.912 d_h=1.1059
+phase w=256 lr=0.01 val_acc=0.935 d_h=0.9215
+phase w=256 lr=0.02 val_acc=0.946 d_h=0.7510
+phase w=256 lr=0.05 val_acc=0.956 d_h=0.5312
+phase w=512 lr=0.002 val_acc=0.896 d_h=0.3402
+phase w=512 lr=0.005 val_acc=0.919 d_h=0.5681
+phase w=512 lr=0.01 val_acc=0.936 d_h=0.4519
+phase w=512 lr=0.02 val_acc=0.948 d_h=0.3325
+phase w=512 lr=0.05 val_acc=0.962 d_h=0.3092
+phase w=1024 lr=0.002 val_acc=0.905 d_h=0.1875
+phase w=1024 lr=0.005 val_acc=0.923 d_h=0.2790
+phase w=1024 lr=0.01 val_acc=0.938 d_h=0.2122
+phase w=1024 lr=0.02 val_acc=0.951 d_h=0.1615
+phase w=1024 lr=0.05 val_acc=0.958 d_h=0.1411
+width w=16 test_acc=0.921
+width w=32 test_acc=0.942
+width w=64 test_acc=0.939
+width w=128 test_acc=0.942
+width w=256 test_acc=0.949
+width w=512 test_acc=0.948
+width w=1024 test_acc=0.949
+width w=2048 test_acc=0.955
+grokking done final train_acc=1.000 test_acc=1.000
+edge-of-stability run finished (630 steps)
+neural collapse snapshots: 7680 rows
+Published blog figures to /n/home00/varunreddy/varun04reddy.github.io/assets/img/blog/critical-point
+Figures published to /n/home00/varunreddy/varun04reddy.github.io/assets/img/blog/critical-point

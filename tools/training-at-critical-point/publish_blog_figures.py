@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused teacher–student figures: order parameters + internal alignment structure."""
+"""Rich Ganguli/Pehlevan-style teacher–student figures."""
 
 from __future__ import annotations
 
@@ -16,154 +16,204 @@ from matplotlib.collections import LineCollection
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNS_ROOT = REPO_ROOT / "experiments/training-at-critical-point/runs"
-SWEEPS_ROOT = RUNS_ROOT / "_sweeps"
-ASSETS_DIR = REPO_ROOT / "assets/img/blog/critical-point"
+SWEEPS = RUNS_ROOT / "_sweeps"
+ASSETS = REPO_ROOT / "assets/img/blog/critical-point"
 
-_skill_root = Path(os.environ.get("AGENT_SKILLS_ROOT", Path.home() / ".agent-skills"))
-sys.path.insert(0, str(_skill_root / "research-plotting" / "scripts"))
+_skill = Path(os.environ.get("AGENT_SKILLS_ROOT", Path.home() / ".agent-skills"))
+sys.path.insert(0, str(_skill / "research-plotting" / "scripts"))
 from research_plotting import (  # noqa: E402
+    add_colorbar,
     add_panel_label,
     clean_axis,
     plot_heatmap,
+    plot_sweep_curves,
     save_figure,
     set_research_style,
     smooth_ema,
     smooth_log_ema,
 )
 
-SMOOTH_ALPHA = 0.07
+ALPHA = 0.07
+K_STAR = 8
 
 
-def _load(run_name: str) -> pd.DataFrame:
-    return pd.read_csv(RUNS_ROOT / run_name / "metrics.csv")
-
-
-def _trajectory(ax, x, y, t, *, cmap: str = "plasma") -> mcolors.Normalize:
-    x = np.asarray(x, float)
-    y = np.clip(np.asarray(y, float), 1e-6, None)
-    t = np.asarray(t, float)
-    m = np.isfinite(x) & np.isfinite(y) & np.isfinite(t)
-    x, y, t = x[m], y[m], t[m]
-    pts = np.stack([x, y], axis=1).reshape(-1, 1, 2)
-    segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
-    norm = mcolors.Normalize(t.min(), t.max())
-    lc = LineCollection(segs, cmap=plt.get_cmap(cmap), norm=norm, linewidths=2.0)
-    lc.set_array(0.5 * (t[:-1] + t[1:]))
+def _traj_colored(ax, xs, ys, ts, *, cmap: str = "plasma", lw: float = 2.2) -> mcolors.Normalize:
+    xs, ys, ts = map(lambda a: np.asarray(a, float), (xs, ys, ts))
+    ys = np.clip(ys, 1e-6, None)
+    m = np.isfinite(xs) & np.isfinite(ys)
+    xs, ys, ts = xs[m], ys[m], ts[m]
+    segs = np.stack([np.column_stack([xs[:-1], ys[:-1]]), np.column_stack([xs[1:], ys[1:]])], axis=1)
+    norm = mcolors.Normalize(ts.min(), ts.max())
+    lc = LineCollection(segs, cmap=plt.get_cmap(cmap), norm=norm, linewidths=lw)
+    lc.set_array(0.5 * (ts[:-1] + ts[1:]))
     ax.add_collection(lc)
-    ax.scatter(x[0], y[0], s=20, c="#2563eb", zorder=5, edgecolors="white", linewidths=0.4)
-    ax.scatter(x[-1], y[-1], s=24, c="#dc2626", zorder=5, edgecolors="white", linewidths=0.4)
-    ax.set_xlim(x.min() - 0.03, x.max() + 0.03)
-    ymin, ymax = y.min(), y.max()
-    ax.set_ylim(ymin * 0.3, ymax * 3.0)
     return norm
 
 
-def fig01_macro_trajectory(pub: Path, out: Path) -> None:
-    """Training as a path in (R, ε_g) order-parameter space."""
-    df = _load("ts_dynamics").dropna(subset=["R", "eps_g"])
-    fig, ax = plt.subplots(figsize=(4.6, 3.4))
-    norm = _trajectory(ax, df["R"], df["eps_g"], df["step"])
-    ax.set_yscale("log")
-    ax.set_xlabel(r"teacher overlap $R$")
+def fig01_lr_portraits(pub: Path, out: Path) -> None:
+    """Feature-drift vs generalization trajectories at multiple learning rates."""
+    traj = pd.read_csv(SWEEPS / "ts_lr" / "aggregated.csv")
+    fig, ax = plt.subplots(figsize=(5.2, 3.8))
+    cmap, norm = plot_sweep_curves(
+        ax, traj, x="d_h", y="eps_g", sweep="lr",
+        cmap_name="coolwarm", log_color=False, log_smooth=True, smooth_alpha=ALPHA,
+    )
+    ax.set_xlabel(r"feature drift $d_h$")
     ax.set_ylabel(r"generalization error $\varepsilon_g$")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
     clean_axis(ax)
-    cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap="plasma"), ax=ax, fraction=0.05, pad=0.04)
-    cbar.set_label("training step", fontsize=7)
-    cbar.ax.tick_params(labelsize=6)
+    add_colorbar(fig, ax, cmap, norm, r"learning rate $\eta$")
     fig.tight_layout()
-    save_figure(fig, out / "fig01_macro")
-    _copy_web(out / "fig01_macro.png", pub / "fig01-phase-portrait.png")
+    save_figure(fig, out / "fig01_lr_portraits")
+    _web(out / "fig01_lr_portraits.png", pub / "fig01-phase-portrait.png")
     plt.close(fig)
 
 
-def fig02_micro_alignment(pub: Path, out: Path) -> None:
-    """Internal structure: student×teacher neuron overlap matrices at three times."""
+def fig02_alignment_evolution(pub: Path, out: Path) -> None:
     snap = pd.read_csv(RUNS_ROOT / "ts_dynamics" / "alignment_snapshots.csv")
     steps = sorted(snap["step"].unique())
-    pick = [steps[0], steps[len(steps) // 2], steps[-1]]
-    fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.4))
+    pick = [steps[0], steps[len(steps) // 4], steps[len(steps) // 2], steps[3 * len(steps) // 4], steps[-1]]
+    base = snap[snap["step"] == steps[0]]
+    ks, kt = int(base["s_neuron"].max()) + 1, int(base["t_neuron"].max()) + 1
+    m0 = np.zeros((ks, kt))
+    for _, r in base.iterrows():
+        m0[int(r["s_neuron"]), int(r["t_neuron"])] = r["overlap"]
+    fig, axes = plt.subplots(1, 5, figsize=(9.8, 2.6))
     for i, (ax, st) in enumerate(zip(axes, pick)):
         sub = snap[snap["step"] == st]
-        k_s = int(sub["s_neuron"].max()) + 1
-        k_t = int(sub["t_neuron"].max()) + 1
-        mat = np.zeros((k_s, k_t))
+        mat = np.zeros((ks, kt))
         for _, r in sub.iterrows():
             mat[int(r["s_neuron"]), int(r["t_neuron"])] = r["overlap"]
-        im = ax.imshow(mat, aspect="auto", cmap="magma", vmin=0, vmax=1, origin="lower")
-        ax.set_xlabel("teacher neuron")
-        ax.set_ylabel("student neuron")
-        ax.set_title(f"step {int(st)}", fontsize=7)
+        gain = np.clip(mat - m0, 0, None)
+        im = ax.imshow(gain, aspect="auto", cmap="turbo", vmin=0, vmax=gain.max() + 1e-6, origin="lower")
+        ax.set_title(f"{int(st)}", fontsize=7)
+        ax.set_xlabel("teacher" if i >= 2 else "")
+        ax.set_ylabel("student" if i == 0 else "")
+        if i > 0:
+            ax.set_yticks([])
         add_panel_label(ax, chr(ord("a") + i))
-    fig.colorbar(im, ax=axes, fraction=0.025, pad=0.02, label=r"$|\cos(w_i, w_j^\star)|$")
-    fig.tight_layout()
+    cbar = fig.colorbar(im, ax=axes, fraction=0.015, pad=0.02, label=r"$\Delta|M_{ij}|$ vs init")
+    fig.suptitle("Emergent specialization: student neurons lock onto teacher directions", fontsize=8, y=1.03)
+    fig.subplots_adjust(wspace=0.08)
     save_figure(fig, out / "fig02_alignment")
-    _copy_web(out / "fig02_alignment.png", pub / "fig02-alignment.png")
+    _web(out / "fig02_alignment.png", pub / "fig02-alignment.png")
     plt.close(fig)
 
 
-def fig03_per_neuron_order(pub: Path, out: Path) -> None:
-    """Decomposed order parameter: each teacher direction has its own overlap R_j(t)."""
-    df = _load("ts_dynamics")
-    rcols = [c for c in df.columns if c.startswith("R_t")]
-    fig, ax = plt.subplots(figsize=(4.8, 2.8))
-    cmap = plt.get_cmap("tab10")
+def fig03_staggered_order(pub: Path, out: Path) -> None:
+    df = pd.read_csv(RUNS_ROOT / "ts_dynamics" / "metrics.csv")
+    rcols = sorted(c for c in df.columns if c.startswith("R_t"))
+    fig, axes = plt.subplots(2, 1, figsize=(5.4, 4.2), sharex=True, height_ratios=[1.2, 1])
     steps = df["step"].to_numpy()
+    tab = plt.get_cmap("tab10")
     for j, col in enumerate(rcols):
-        y = smooth_ema(df[col].to_numpy(), alpha=SMOOTH_ALPHA)
-        ax.plot(steps, y, lw=1.5, color=cmap(j), label=rf"$R_{j}(t)$")
-    r_mean = smooth_ema(df["R"].to_numpy(), alpha=SMOOTH_ALPHA)
-    ax.plot(steps, r_mean, lw=2.2, color="#111827", ls="--", label=r"mean $R(t)$")
-    ax.set_xlabel("step")
-    ax.set_ylabel("overlap")
-    ax.set_ylim(0, 1.05)
-    ax.legend(frameon=False, fontsize=6, ncol=2, loc="lower right")
-    clean_axis(ax)
+        axes[0].plot(steps, smooth_ema(df[col].to_numpy(), ALPHA), lw=1.5, color=tab(j), label=rf"$R_{j}$")
+    axes[0].plot(steps, smooth_ema(df["R"].to_numpy(), ALPHA), "k--", lw=2, label=r"$\bar R$")
+    axes[0].set_ylabel("overlap")
+    axes[0].set_ylim(0, 1.05)
+    axes[0].legend(frameon=False, fontsize=5.5, ncol=3, loc="lower right")
+    add_panel_label(axes[0], "a")
+    clean_axis(axes[0])
+
+    eg = smooth_log_ema(np.clip(df["eps_g"].to_numpy(), 1e-6, None), ALPHA)
+    dh = smooth_log_ema(np.clip(df["d_h"].to_numpy(), 1e-8, None), ALPHA)
+    axes[1].plot(steps, eg, color="#7c3aed", lw=1.8, label=r"$\varepsilon_g$")
+    ax2 = axes[1].twinx()
+    ax2.plot(steps, dh, color="#0891b2", lw=1.4, alpha=0.85, label=r"$d_h$")
+    axes[1].set_yscale("log")
+    ax2.set_yscale("log")
+    axes[1].set_xlabel("step")
+    axes[1].set_ylabel(r"$\varepsilon_g$")
+    ax2.set_ylabel(r"$d_h$", color="#0891b2")
+    ax2.tick_params(axis="y", labelcolor="#0891b2", labelsize=6)
+    add_panel_label(axes[1], "b")
+    clean_axis(axes[1])
     fig.tight_layout()
-    save_figure(fig, out / "fig03_per_neuron")
-    _copy_web(out / "fig03_per_neuron.png", pub / "fig03-per-neuron-overlap.png")
+    save_figure(fig, out / "fig03_staggered")
+    _web(out / "fig03_staggered.png", pub / "fig03-per-neuron-overlap.png")
     plt.close(fig)
 
 
-def fig04_phase_map(pub: Path, out: Path) -> None:
-    """Phase diagram in (K, η): where can the student recover the teacher?"""
-    eps = pd.read_csv(SWEEPS_ROOT / "ts_phase" / "matrices" / "eps_g_matrix.csv", index_col=0)
-    fig, ax = plt.subplots(figsize=(4.2, 3.2))
-    plot_heatmap(
-        ax, eps.values, eps.columns.astype(float), eps.index.astype(int),
-        cmap_name="magma", log_norm=True, fig=fig, colorbar_label=r"$\varepsilon_g$",
+def fig04_snr_phase(pub: Path, out: Path) -> None:
+    mat = SWEEPS / "ts_snr" / "matrices"
+    eps = pd.read_csv(mat / "eps_g_matrix.csv", index_col=0)
+    rr = pd.read_csv(mat / "R_matrix.csv", index_col=0)
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))
+    plot_heatmap(axes[0], eps.values, eps.columns.astype(float), eps.index.astype(float), cmap_name="magma", log_norm=True, fig=fig, colorbar_label=r"$\varepsilon_g$")
+    axes[0].set_xlabel(r"$\alpha = n/d$")
+    axes[0].set_ylabel(r"label noise $\sigma$")
+    add_panel_label(axes[0], "a")
+    plot_heatmap(axes[1], rr.values, rr.columns.astype(float), rr.index.astype(float), cmap_name="viridis", fig=fig, colorbar_label="$R$")
+    axes[1].set_xlabel(r"$\alpha = n/d$")
+    axes[1].set_ylabel(r"label noise $\sigma$")
+    add_panel_label(axes[1], "b")
+    fig.tight_layout()
+    save_figure(fig, out / "fig04_snr")
+    _web(out / "fig04_snr.png", pub / "fig04-phase-diagram.png")
+    plt.close(fig)
+
+
+def fig05_sample_scaling(pub: Path, out: Path) -> None:
+    df = pd.read_csv(SWEEPS / "ts_sample_k" / "summary.csv")
+    fig, ax = plt.subplots(figsize=(5.0, 3.2))
+    cmap, norm = plot_sweep_curves(
+        ax, df, x="alpha", y="eps_g", sweep="student_width",
+        cmap_name="viridis", log_color=True, log_smooth=False, smooth_alpha=ALPHA,
     )
-    ax.set_xlabel(r"learning rate $\eta$")
-    ax.set_ylabel(r"student width $K$")
-    ax.axhline(y=4, color="white", ls="--", lw=0.8, alpha=0.8)
-    fig.tight_layout()
-    save_figure(fig, out / "fig04_phase")
-    _copy_web(out / "fig04_phase.png", pub / "fig04-phase-diagram.png")
-    plt.close(fig)
-
-
-def fig05_sample_complexity(pub: Path, out: Path) -> None:
-    """Data-limited transition: ε_g vs α = n/d at fixed architecture."""
-    df = pd.read_csv(SWEEPS_ROOT / "ts_sample" / "summary.csv")
-    fig, ax = plt.subplots(figsize=(4.2, 2.8))
-    eg = df["eps_g"].to_numpy()
-    ax.plot(df["alpha"], eg, "o-", color="#2563eb", lw=1.6, ms=5)
-    ax2 = ax.twinx()
-    ax2.plot(df["alpha"], df["R"], "s--", color="#059669", lw=1.2, ms=4, alpha=0.85)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel(r"$\alpha = n/d$")
     ax.set_ylabel(r"$\varepsilon_g$")
-    ax2.set_ylabel("$R$", color="#059669")
-    ax2.tick_params(axis="y", labelcolor="#059669", labelsize=6)
-    ax2.set_ylim(0, 1.05)
+    add_colorbar(fig, ax, cmap, norm, "$K$")
+    ax.axvline(40, color="#78716c", ls=":", lw=0.9, alpha=0.7)
     clean_axis(ax)
     fig.tight_layout()
     save_figure(fig, out / "fig05_sample")
-    _copy_web(out / "fig05_sample.png", pub / "fig05-sample-complexity.png")
+    _web(out / "fig05_sample.png", pub / "fig05-sample-complexity.png")
     plt.close(fig)
 
 
-def _copy_web(src: Path, dst: Path) -> None:
+def fig06_lazy_rich(pub: Path, out: Path) -> None:
+    dh = pd.read_csv(SWEEPS / "ts_lazy_rich" / "matrices" / "d_h_matrix.csv", index_col=0)
+    rr = pd.read_csv(SWEEPS / "ts_lazy_rich" / "matrices" / "R_matrix.csv", index_col=0)
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))
+    plot_heatmap(axes[0], dh.values, dh.columns.astype(float), dh.index.astype(float), cmap_name="cividis", log_norm=True, fig=fig, colorbar_label=r"$d_h$")
+    axes[0].set_xlabel(r"$\eta$")
+    axes[0].set_ylabel(r"init scale $\gamma$")
+    add_panel_label(axes[0], "a")
+    plot_heatmap(axes[1], rr.values, rr.columns.astype(float), rr.index.astype(float), cmap_name="viridis", fig=fig, colorbar_label="$R$")
+    axes[1].set_xlabel(r"$\eta$")
+    axes[1].set_ylabel(r"init scale $\gamma$")
+    add_panel_label(axes[1], "b")
+    fig.tight_layout()
+    save_figure(fig, out / "fig06_lazy")
+    _web(out / "fig06_lazy.png", pub / "fig06-lazy-rich.png")
+    plt.close(fig)
+
+
+def fig07_capacity_phase(pub: Path, out: Path) -> None:
+    mat = SWEEPS / "ts_phase" / "matrices"
+    eps = pd.read_csv(mat / "eps_g_matrix.csv", index_col=0)
+    rr = pd.read_csv(mat / "overlap_matrix.csv", index_col=0)
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.8))
+    plot_heatmap(axes[0], eps.values, eps.columns.astype(float), eps.index.astype(float), cmap_name="magma", log_norm=True, fig=fig, colorbar_label=r"$\varepsilon_g$")
+    axes[0].set_xlabel(r"$\eta$")
+    axes[0].set_ylabel(r"student width $K$")
+    axes[0].axhline(K_STAR - 0.5, color="white", ls="--", lw=0.8, alpha=0.7)
+    add_panel_label(axes[0], "a")
+    plot_heatmap(axes[1], rr.values, rr.columns.astype(float), rr.index.astype(float), cmap_name="viridis", fig=fig, colorbar_label="$R$")
+    axes[1].set_xlabel(r"$\eta$")
+    axes[1].set_ylabel(r"student width $K$")
+    axes[1].axhline(K_STAR - 0.5, color="white", ls="--", lw=0.8, alpha=0.7)
+    add_panel_label(axes[1], "b")
+    fig.tight_layout()
+    save_figure(fig, out / "fig07_capacity")
+    _web(out / "fig07_capacity.png", pub / "fig07-capacity-phase.png")
+    plt.close(fig)
+
+
+def _web(src: Path, dst: Path) -> None:
     from PIL import Image
 
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -176,24 +226,19 @@ def _copy_web(src: Path, dst: Path) -> None:
 
 def publish_all(pub: Path | None = None) -> None:
     set_research_style()
-    pub = pub or ASSETS_DIR
-    out = SWEEPS_ROOT / "figures"
+    pub = pub or ASSETS
+    out = SWEEPS / "figures"
     out.mkdir(parents=True, exist_ok=True)
     pub.mkdir(parents=True, exist_ok=True)
-    fig01_macro_trajectory(pub, out)
-    fig02_micro_alignment(pub, out)
-    fig03_per_neuron_order(pub, out)
-    fig04_phase_map(pub, out)
-    fig05_sample_complexity(pub, out)
+    fig01_lr_portraits(pub, out)
+    fig02_alignment_evolution(pub, out)
+    fig03_staggered_order(pub, out)
+    fig04_snr_phase(pub, out)
+    fig05_sample_scaling(pub, out)
+    fig06_lazy_rich(pub, out)
+    fig07_capacity_phase(pub, out)
     print(f"Published to {pub}")
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--publish-dir", type=Path, default=ASSETS_DIR)
-    args = parser.parse_args()
-    publish_all(args.publish_dir if args.publish_dir.is_absolute() else REPO_ROOT / args.publish_dir)
-
-
 if __name__ == "__main__":
-    main()
+    publish_all()

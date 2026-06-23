@@ -1,0 +1,12 @@
+Device: cuda
+dynamics R=0.260 eps_g=0.00118
+lr=0.015 final R=0.252 eps_g=0.0091
+lr=0.03 final R=0.243 eps_g=0.0069
+lr=0.08 final R=0.244 eps_g=0.0010
+lr=0.15 final R=0.311 eps_g=0.0006
+lr=0.35 final R=0.256 eps_g=0.0001
+snr phase done (49 cells)
+sample multi-K done
+lazy/rich sweep done
+Published to /n/home00/varunreddy/varun04reddy.github.io/assets/img/blog/critical-point
+Figures published to /n/home00/varunreddy/varun04reddy.github.io/assets/img/blog/critical-point

@@ -950,15 +950,15 @@ def plot_run_figures(assets_dir: Path) -> None:
 def run_all_experiments(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:
     device = get_device()
     set_seed(SEED)
-    bundle_log = setup_logger(setup_run_dir(runs_root, "_bundle", {"experiment": "theory_bundle"}, fresh=False))
+    bundle_log = setup_logger(setup_run_dir(runs_root, "_bundle", {"experiment": "ts_ganguli_pehlevan"}, fresh=False))
     bundle_log.info("Device: %s", device)
 
-    run_ts_dynamics(runs_root, device, bundle_log)
-    ts_phase = run_ts_phase_map(runs_root, device, bundle_log)
-    write_ts_matrices(ts_phase, runs_root)
-    run_ts_sample_sweep(runs_root, device, bundle_log)
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from run_ts_experiments import run_all_ts
+
+    run_all_ts(runs_root, device, bundle_log, SEED)
     plot_run_figures(assets_dir)
-    bundle_log.info("Teacher–student figures published to %s", assets_dir)
+    bundle_log.info("Figures published to %s", assets_dir)
 
 
 def run_grokking_only(runs_root: Path, legacy_out: Path, assets_dir: Path) -> None:

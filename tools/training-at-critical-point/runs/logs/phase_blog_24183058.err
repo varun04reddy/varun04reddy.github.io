@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 989, in <module>
+    main()
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 985, in main
+    run_all_experiments(args.runs_root, args.legacy_out, args.assets_dir)
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 946, in run_all_experiments
+    plot_run_figures(assets_dir)
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 928, in plot_run_figures
+    publish_all(assets_dir)
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/publish_blog_figures.py", line 312, in publish_all
+    fig01_phase_portrait(pub, out_dir)
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/publish_blog_figures.py", line 73, in fig01_phase_portrait
+    norm = _time_colored_trajectory(axes[0], df["R"], df["eps_g"], df["step"], cmap="plasma")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/publish_blog_figures.py", line 63, in _time_colored_trajectory
+    ax.set_xlim(x.min() - 0.02 * (x.ptp() + 1e-6), x.max() + 0.02 * (x.ptp() + 1e-6))
+                                  ^^^^^
+AttributeError: 'numpy.ndarray' object has no attribute 'ptp'

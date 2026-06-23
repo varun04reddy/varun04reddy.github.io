@@ -1,0 +1,2 @@
+/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/publish_blog_figures.py:92: UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
+  fig.tight_layout()

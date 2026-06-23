@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 989, in <module>
+    main()
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 985, in main
+    run_all_experiments(args.runs_root, args.legacy_out, args.assets_dir)
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 937, in run_all_experiments
+    run_ts_dynamics(runs_root, device, bundle_log)
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/train_phase_blog.py", line 260, in run_ts_dynamics
+    x_tr, y_tr, x_te, y_te = make_dataset(cfg, teacher, device, SEED)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/teacher_student.py", line 88, in make_dataset
+    y_tr = teacher_labels(teacher, x_tr, cfg.noise_std, gen)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/n/home00/varunreddy/dynamics/venv/lib64/python3.11/site-packages/torch/utils/_contextlib.py", line 120, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/n/home00/varunreddy/varun04reddy.github.io/tools/training-at-critical-point/teacher_student.py", line 80, in teacher_labels
+    y = y + noise_std * torch.randn_like(y, generator=gen)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: randn_like() got an unexpected keyword argument 'generator'
