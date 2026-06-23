@@ -1,0 +1,24 @@
+Host: holygpu8a19401.rc.fas.harvard.edu
+CUDA: True NVIDIA A100-SXM4-40GB
+Device: cuda
+phase w=32 lr=0.002 val_acc=0.879
+phase w=32 lr=0.005 val_acc=0.910
+phase w=32 lr=0.01 val_acc=0.926
+phase w=32 lr=0.02 val_acc=0.931
+phase w=32 lr=0.05 val_acc=0.932
+phase w=64 lr=0.002 val_acc=0.886
+phase w=64 lr=0.005 val_acc=0.914
+phase w=64 lr=0.01 val_acc=0.928
+phase w=64 lr=0.02 val_acc=0.940
+phase w=64 lr=0.05 val_acc=0.949
+phase w=128 lr=0.002 val_acc=0.892
+phase w=128 lr=0.005 val_acc=0.920
+phase w=128 lr=0.01 val_acc=0.919
+phase w=128 lr=0.02 val_acc=0.940
+phase w=128 lr=0.05 val_acc=0.948
+phase w=256 lr=0.002 val_acc=0.894
+phase w=256 lr=0.005 val_acc=0.915
+phase w=256 lr=0.01 val_acc=0.933
+phase w=256 lr=0.02 val_acc=0.945
+phase w=256 lr=0.05 val_acc=0.958
+phase w=512 lr=0.002 val_acc=0.896

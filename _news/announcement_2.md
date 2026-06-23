@@ -5,4 +5,4 @@ inline: true
 related_posts: false
 ---
 
-I have graduated from the University of Virginia with a B.S. in Computer Science.
+I have graduated from the University of Virginia with a B.S. in Computer Science in 3 years.
