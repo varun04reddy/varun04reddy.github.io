@@ -302,21 +302,22 @@ def fig6_sym_antisym(gen: np.random.Generator) -> None:
 
 def fig7_linear_regression(gen: np.random.Generator) -> None:
     n = 1000
-    alphas = [0.5, 1.0, 2.0, 5.0]
+    alphas = [0.4, 0.6, 0.8, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0]
     sigma = 0.1
     steps = 800
-    eta = 0.3
-    fig, ax = plt.subplots(figsize=(5.6, 3.8))
+    eta = 0.25
+    beta_star = gen.normal(size=n)
+    beta_star = beta_star / np.linalg.norm(beta_star) * np.sqrt(n)
+
+    fig, ax = plt.subplots(figsize=(6.0, 3.8))
     cmap = plt.get_cmap("viridis")
     norm = mcolors.Normalize(vmin=min(alphas), vmax=max(alphas))
 
     for alpha in alphas:
-        p = int(alpha * n)
+        p = max(int(alpha * n), 1)
         psi = gen.normal(size=(p, n))
-        beta = gen.normal(size=n)
-        beta = beta / np.linalg.norm(beta) * np.sqrt(n)
         eps = sigma * gen.normal(size=p)
-        y = psi @ beta / np.sqrt(n) + eps
+        y = psi @ beta_star / np.sqrt(n) + eps
         w = np.zeros(n)
         train_hist, test_hist = [], []
         for _ in range(steps):
@@ -324,11 +325,12 @@ def fig7_linear_regression(gen: np.random.Generator) -> None:
             grad = (2.0 / (p * np.sqrt(n))) * psi.T @ (pred - y)
             w -= eta * grad
             train_hist.append(np.mean((pred - y) ** 2))
-            test_hist.append(np.mean((w - beta) ** 2) / n + sigma**2)
+            # Population test loss: ||w - beta*||^2 / N + sigma^2 (not ||w-beta*||^2 / N^2).
+            test_hist.append(np.linalg.norm(w - beta_star) ** 2 / n + sigma**2)
         t = np.arange(steps)
         c = cmap(norm(alpha))
-        ax.semilogy(t, train_hist, color=c, lw=1.6, solid_capstyle="round")
-        ax.semilogy(t, test_hist, color=c, lw=1.6, ls="--", alpha=0.85)
+        ax.semilogy(t, train_hist, color=c, lw=1.4, solid_capstyle="round")
+        ax.semilogy(t, test_hist, color=c, lw=1.4, ls="--", alpha=0.85)
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
