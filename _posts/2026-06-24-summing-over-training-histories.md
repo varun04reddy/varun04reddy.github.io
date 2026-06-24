@@ -1,8 +1,11 @@
-title: “Path Integral Appreciation Post”
+---
+title: "Summing Over Training Histories"
 date: 2026-06-24
 layout: post
+description: "Why the Feynman path integral is a useful way to think about high-dimensional learning dynamics, through the GOE example in Bordelon and Pehlevan."
 categories: [technical]
-
+tags: [deep-learning-theory, statistical-physics, path-integrals, random-matrices]
+---
 
 During deep learning experimentation we often seek the same bland visiblity. We can log every training step, plot every loss curve, inspect gradients, track spectra, and save checkpoints. But the actual object we are studying is still enormous: millions or billions (trillions?) of coupled parameters evolving under data, architecture, initialization, and optimization.
 
@@ -38,9 +41,9 @@ $$
 
 The GOE warmup is a calibration case. We know the answer should be the Wigner semicircle. The interesting part is watching the response function recover it.
 
-⸻
+---
 
-Order parameters instead of coordinates
+## Order parameters instead of coordinates
 
 Training produces a trajectory:
 
@@ -50,14 +53,14 @@ $$
 
 One can track each component of $\theta_t$, but the more useful question is which collective observables carry information: correlations between times, response to perturbations, spectra of covariance matrices, and the loss curve itself.
 
-Bordelon and Pehlevan⁠￼ frame DMFT for disordered high-dimensional dynamics in exactly this language. The system has too many coupled coordinates to follow individually. After averaging over randomness and taking the dimension large, the dynamics collapse onto two two-time order parameters:
+Bordelon and Pehlevan frame DMFT for disordered high-dimensional dynamics in exactly this language. The system has too many coupled coordinates to follow individually. After averaging over randomness and taking the dimension large, the dynamics collapse onto two two-time order parameters:
 
 $$
-C(t,t’) = \frac{1}{N}, h(t)\cdot h(t’),
+C(t,t') = \frac{1}{N}\, h(t)\cdot h(t'),
 $$
 
 $$
-R(t,t’) = \frac{1}{N},\operatorname{Tr}\frac{\delta h(t)}{\delta j(t’)^\top}.
+R(t,t') = \frac{1}{N}\,\operatorname{Tr}\frac{\delta h(t)}{\delta j(t')^\top}.
 $$
 
 $C$ asks how similar the state is at two different times. $R$ asks how much a perturbation at one time echoes into another. Correlation is self-memory. Response is memory of an external poke.
@@ -66,20 +69,20 @@ If you care about dynamics, $C$ and $R$ are the natural objects to study. Two sy
 
 The system has memory, and memory is two-time.
 
-⸻
+---
 
-Why path integrals at all?
+## Why path integrals at all?
 
 Feynman’s quantum path integral sums over all paths $x(t)$, weighted by an action:
 
 $$
-\int \mathcal{D}x; e^{\frac{i}{\hbar} S[x]}.
+\int \mathcal{D}x\, e^{\frac{i}{\hbar} S[x]}.
 $$
 
 In statistical mechanics the same grammar appears with real weights:
 
 $$
-\int \mathcal{D}x; e^{-S[x]}.
+\int \mathcal{D}x\, e^{-S[x]}.
 $$
 
 The expression is compact almost to the point of being suspicious. All histories appear. The classical action sits in the exponent. The amplitude is written directly as a sum over possibilities, without first solving an equation of motion and translating the solution into probabilities.
@@ -107,13 +110,13 @@ Three related objects often get conflated:
 Concretely, a path integral converts constraints on microscopic trajectories into an action over macroscopic observables. Schematically, one starts with something like
 
 $$
-Z=\int \mathcal{D}h,\mathcal{D}\hat h; e^{-S[h,\hat h]},
+Z=\int \mathcal{D}h\,\mathcal{D}\hat h\, e^{-S[h,\hat h]},
 $$
 
 then after averaging over disorder and introducing order parameters, obtains a large-$N$ form
 
 $$
-Z=\int \mathcal{D}Q; e^{-N S[Q]}.
+Z=\int \mathcal{D}Q\, e^{-N S[Q]}.
 $$
 
 The factor of $N$ in the exponent is the important clue. At large dimension, not every macroscopic history contributes equally. The integral concentrates near a saddle. The path integral is a disciplined way to ask:
@@ -122,9 +125,9 @@ Which functions of the training history survive when the dimension is large?
 
 This is the conceptual bridge to learning. In quantum mechanics, the path integral asks which histories survive interference. In high-dimensional random dynamics, the DMFT path integral asks which collective histories survive disorder averaging and large-$N$ concentration. In both cases, the microscopic description is too large, and the formalism tells us what kind of macroscopic object to look for.
 
-⸻
+---
 
-The GOE warmup: a linear system we can check
+## The GOE warmup: a linear system we can check
 
 Bordelon and Pehlevan start with
 
@@ -158,14 +161,14 @@ The important phenomenon is self-averaging. As $N\to\infty$, many details of the
 
 Before we even talk about time, disorder in the entries produces a deterministic eigenvalue density. Figure 1 is the static hint that averaging works: draw a fresh GOE matrix, histogram its eigenvalues, and the semicircle shows up. If the path-integral / DMFT machinery is doing its job, every time-dependent quantity we compute later should be built from this same $\rho(\lambda)$.
 
-⸻
+---
 
-What the path integral compresses
+## What the path integral compresses
 
 I read the calculation as five moves. The paper writes the generating functional as
 
 $$
-Z = \int \mathcal{D}Q, e^{-N S[Q]},
+Z = \int \mathcal{D}Q\, e^{-N S[Q]},
 $$
 
 dominated by a saddle at large $N$. Here is the compressed version.
@@ -194,14 +197,11 @@ Fifth, obtain a single-site process. A typical coordinate evolves as if it were 
 
 $$
 \frac{\partial}{\partial t} h(t)
-
-u(t)
-+
-\int dt’, R(t,t’) h(t’)
-+
-j(t),
+= u(t)
++ \int dt'\, R(t,t') h(t')
++ j(t),
 \qquad
-u(t) \sim \mathrm{GP}(0, C(t,t’)).
+u(t) \sim \mathrm{GP}(0, C(t,t')).
 $$
 
 The original system had $N$ coupled coordinates. In the $N\to\infty$ limit, a typical coordinate behaves like a single stochastic process driven by colored noise and delayed self-feedback.
@@ -211,11 +211,9 @@ This is the same aesthetic as the path integral, now in a disordered dynamical s
 In the GOE case, the saddle closes further. The response satisfies a self-consistency equation that is much smaller than the original system:
 
 $$
-\partial_t R(t,t’)
-
-\delta(t-t’)
-+
-\int_0^t dt’’, R(t,t’’), R(t’’,t’).
+\partial_t R(t,t')
+= \delta(t-t')
++ \int_0^t dt''\, R(t,t'')\, R(t'',t').
 $$
 
 With time-translation invariance, Fourier transforming gives
@@ -228,8 +226,7 @@ Choosing the branch with the correct large-$|\omega|$ behavior gives
 
 $$
 R(\omega)
-
-\frac{1}{2}
+= \frac{1}{2}
 \left[
 i\omega+\sqrt{(i\omega)^2-4}
 \right],
@@ -249,18 +246,16 @@ $$
 
 The figures below check the last step directly.
 
-⸻
+---
 
-Response is the spectrum, read in time
+## Response is the spectrum, read in time
 
 For the linear system, with lag $\tau=t-t’$,
 
 $$
 R(\tau)
-
-\frac{1}{N}\operatorname{Tr}e^{-M\tau}
-
-\int d\lambda,\rho(\lambda)e^{-\lambda\tau}.
+= \frac{1}{N}\operatorname{Tr}e^{-M\tau}
+= \int d\lambda\,\rho(\lambda)e^{-\lambda\tau}.
 $$
 
 Each eigenvalue contributes a mode $e^{-\lambda\tau}$. The response superposes them with weights set by $\rho(\lambda)$. A dynamical question becomes a spectral question.
@@ -269,12 +264,9 @@ The same object appears in frequency space as the resolvent, or Stieltjes transf
 
 $$
 R(\omega)
-
-\int d\tau, R(\tau)e^{-i\omega\tau}
-
-\frac{1}{N}\operatorname{Tr}(i\omega+M)^{-1}
-
-\int d\lambda\frac{\rho(\lambda)}{i\omega+\lambda}.
+= \int d\tau\, R(\tau)e^{-i\omega\tau}
+= \frac{1}{N}\operatorname{Tr}(i\omega+M)^{-1}
+= \int d\lambda\frac{\rho(\lambda)}{i\omega+\lambda}.
 $$
 
 The eigenvalue density is encoded in the analytic structure of this function. The branch cut is the spectrum.
@@ -283,13 +275,12 @@ For the GOE,
 
 $$
 \rho(\lambda)
-
-\frac{1}{2\pi}\sqrt{4-\lambda^2},
+= \frac{1}{2\pi}\sqrt{4-\lambda^2},
 \qquad
 \lambda\in[-2,2].
 $$
 
-Stability note
+**Stability note.**
 
 Because the GOE spectrum has support on $[-2,2]$, the unshifted flow
 
@@ -307,8 +298,7 @@ so
 
 $$
 R_z(\tau)
-
-\int d\lambda,\rho(\lambda)e^{-(\lambda+z)\tau}.
+= \int d\lambda\,\rho(\lambda)e^{-(\lambda+z)\tau}.
 $$
 
 The unshifted GOE response equation was
@@ -329,7 +319,7 @@ $$
 R_z(\tau)\sim \tau^{-3/2}.
 $$
 
-What Figure 2 is measuring. Imagine injecting a unit perturbation into the system and asking how much of it remains after a lag $\tau$. That scalar is $R_z(\tau)$. Because the dynamics are linear, it equals a trace over eigenmodes: each mode $\lambda$ contributes $\rho(\lambda)e^{-(\lambda+z)\tau}$. Panel (a) plots the full curve on a linear time axis so you can see the decay directly. Panel (b) zooms into the late-time tail on log-log axes and overlays a $\tau^{-3/2}$ reference. The orange curve is one finite-$N$ draw; the dashed curve is the semicircle integral, which is the large-$N$ answer. They should sit on top of each other, and the tail should parallel the dotted line.
+**What Figure 2 is measuring.** Imagine injecting a unit perturbation into the system and asking how much of it remains after a lag $\tau$. That scalar is $R_z(\tau)$. Because the dynamics are linear, it equals a trace over eigenmodes: each mode $\lambda$ contributes $\rho(\lambda)e^{-(\lambda+z)\tau}$. Panel (a) plots the full curve on a linear time axis so you can see the decay directly. Panel (b) zooms into the late-time tail on log-log axes and overlays a $\tau^{-3/2}$ reference. The orange curve is one finite-$N$ draw; the dashed curve is the semicircle integral, which is the large-$N$ answer. They should sit on top of each other, and the tail should parallel the dotted line.
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig2-response-decay.png" alt="Two-panel response decay: linear-time overview and log-log tail" width="640"/>
@@ -338,7 +328,7 @@ What Figure 2 is measuring. Imagine injecting a unit perturbation into the syste
 
 I also checked finite-$N$ convergence: for each matrix size $N$, the relative L2 error between $R_z(\tau)$ and the semicircle integral falls as $N$ grows from hundreds to thousands. Figure 2 already shows agreement at $N=4000$, so I skip a separate plot.
 
-What Figure 3 is showing. The response is an integral over eigenvalues. Figure 3 plots the integrand
+**What Figure 3 is showing.** The response is an integral over eigenvalues. Figure 3 plots the integrand
 
 $$
 W(\lambda,\tau)=\rho(\lambda)e^{-(\lambda+z)\tau}
@@ -358,9 +348,9 @@ The animation below is the same decomposition, one lag at a time. The orange cur
   <figcaption>Animation. Left: integrand W(lambda, tau) at the current lag versus the static semicircle rho(lambda). Right: Rz(tau) accumulated so far. Text banner states the current tau.</figcaption>
 </figure>
 
-⸻
+---
 
-Two-time memory surfaces
+## Two-time memory surfaces
 
 $C(t,t’)$ and $R(t,t’)$ are functions of two times. History spans pairs of times, not a single clock reading.
 
@@ -380,11 +370,9 @@ $$
 For symmetric GOE dynamics, there is a special simplification. With the matching linear setup,
 
 $$
-C(t,t’)
-
-\operatorname{tr} e^{-M(t+t’)}
-
-R(t+t’).
+C(t,t')
+= \operatorname{tr} e^{-M(t+t')}
+= R(t+t').
 $$
 
 So the correlation depends on the summed time $t+t’$. This identity is special to the symmetric linear case. It fails in the more interesting asymmetric and machine-learning settings, where correlation and response carry distinct information.
@@ -413,9 +401,9 @@ Two systems can share the same loss at a given step yet carry different memory. 
 
 This is one of the places where the path-integral viewpoint earns its keep. It produces the right kind of object: a surface over pairs of times, because the system’s memory is itself a two-time phenomenon.
 
-⸻
+---
 
-Real spectra relax; imaginary spectra oscillate
+## Real spectra relax; imaginary spectra oscillate
 
 The GOE example is symmetric, so its eigenvectors form an orthogonal basis of relaxation modes. If we change the symmetry class, the same response formalism produces a different temporal texture.
 
@@ -423,12 +411,10 @@ Compare symmetric and antisymmetric random matrices:
 
 $$
 M_{\mathrm{sym}}
-
-\frac{A + A^\top}{\sqrt{2N}},
+= \frac{A + A^\top}{\sqrt{2N}},
 \qquad
 M_{\mathrm{anti}}
-
-\frac{A - A^\top}{\sqrt{2N}}.
+= \frac{A - A^\top}{\sqrt{2N}}.
 $$
 
 Real eigenvalues give exponential relaxation. Purely imaginary eigenvalues give oscillation. Figure 6 contrasts the two: symmetric $M$ has real spectrum and a decaying response, while antisymmetric $M$ has eigenvalues on the imaginary axis and an oscillatory response. Same random draw $A$, different symmetrization, different memory of perturbations.
@@ -438,9 +424,9 @@ Real eigenvalues give exponential relaxation. Purely imaginary eigenvalues give 
   <figcaption>Figure 6. Top: symmetric M with real eigenvalues and decaying Rz(tau). Bottom: antisymmetric M with imaginary eigenvalues and oscillatory response.</figcaption>
 </figure>
 
-⸻
+---
 
-From GOE to learning curves
+## From GOE to learning curves
 
 Bordelon and Pehlevan apply the same template to linear regression, random features, kernel methods, and deep linear networks. The bridge I understand best is random linear regression.
 
@@ -495,17 +481,17 @@ When we plot loss versus time, we are already doing statistical physics: throwin
 
 The paper goes further in random feature models near interpolation, where test loss can be non-monotonic and the full two-time $C(t,t’)$ carries information beyond the spectrum alone. I have not reproduced those curves here; this post stays on the GOE example where we have a calibration case.
 
-⸻
+---
 
-Limits of the GOE warmup
+## Limits of the GOE warmup
 
 The GOE warmup is linear, Gaussian, symmetric, and time-translation invariant. Real networks violate all of that: representations move, Jacobians are non-Hermitian, SGD adds noise, and feature learning changes effective matrices during training.
 
 The example is still useful because it teaches the basic move: replace microscopic coordinates by self-consistent two-time observables. The rest of DMFT is making that move survive in harder systems.
 
-⸻
+---
 
-What I take from it
+## What I take from it
 
 The full derivation is formal, but the conceptual target is concrete. Start with $N$ coupled variables. Average over disorder. Take $N$ large. Identify the self-consistent memory functions that survive. In the GOE warmup, this procedure recovers a spectral law we already trust. In learning problems, the same language gives a way to treat train and test curves as macroscopic observables of high-dimensional dynamics.
 
@@ -517,13 +503,13 @@ Plotting a learning curve is already a macroscopic move. The path integral makes
 
 For high-dimensional learning systems, those functions are often correlations, responses, spectra, and losses — the dynamics projected to the scale where understanding becomes possible.
 
-⸻
+---
 
-References
+## References
 
 * Feynman, R. P., & Hibbs, A. R. (1965). Quantum Mechanics and Path Integrals. McGraw-Hill.
-* Feynman, R. P. The Feynman Lectures on Physics, Vol. II, Chapter 19: “The Principle of Least Action.” Online edition⁠￼.
-* Bordelon, B., & Pehlevan, C. (2026). Disordered Dynamics in High Dimensions: Connections to Random Matrices and Machine Learning. arXiv:2601.01010⁠￼.
+* Feynman, R. P. The Feynman Lectures on Physics, Vol. II, Chapter 19: "The Principle of Least Action." [Online edition](https://www.feynmanlectures.caltech.edu/II_19.html).
+* Bordelon, B., & Pehlevan, C. (2026). Disordered Dynamics in High Dimensions: Connections to Random Matrices and Machine Learning. [arXiv:2601.01010](https://arxiv.org/abs/2601.01010).
 * Mézard, M., & Montanari, A. (2009). Information, Physics, and Computation. Oxford University Press.
 
 Figures: tools/path-integral-dmft/generate_figures.py. PNG exports use white figure panels so axes stay readable in both light and dark site themes.
