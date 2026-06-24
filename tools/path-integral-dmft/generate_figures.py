@@ -128,36 +128,16 @@ def fig2_response_decay(gen: np.random.Generator) -> None:
     ax0.semilogy(tau_lin, r_lin_num, color="#f97316", lw=2.0, label=rf"finite $N={n}$")
     ax0.semilogy(tau_lin, r_lin_th, color="#1e293b", ls="--", lw=1.8, label="semicircle integral")
     ax0.set_xlabel(r"time lag $\tau$")
-    ax0.set_ylabel(r"shifted response $R_z(\tau)$")
-    ax0.set_title("memory of a unit perturbation", fontsize=8)
-    ax0.text(
-        0.04,
-        0.55,
-        "early: all eigenmodes\ncontribute",
-        transform=ax0.transAxes,
-        fontsize=6.5,
-        color=BLOG_MUTED,
-        va="top",
-    )
-    ax0.text(
-        0.55,
-        0.12,
-        "late: only edge modes\nat $\lambda=-2$ remain",
-        transform=ax0.transAxes,
-        fontsize=6.5,
-        color=BLOG_MUTED,
-        va="bottom",
-    )
+    ax0.set_ylabel(r"$R_z(\tau)$")
     ax0.legend(frameon=False, fontsize=6.5, loc="upper right")
     add_panel_label(ax0, "a")
     clean_axis(ax0)
 
     ax1.loglog(tau_log, r_log_num, color="#f97316", lw=2.0, label=rf"finite $N={n}$")
     ax1.loglog(tau_log, r_log_th, color="#1e293b", ls="--", lw=1.8, label="theory")
-    ax1.loglog(tau_log, ref, color="#94a3b8", ls=":", lw=1.5, label=r"$\tau^{-3/2}$ tail")
+    ax1.loglog(tau_log, ref, color="#94a3b8", ls=":", lw=1.5, label=r"$\tau^{-3/2}$")
     ax1.set_xlabel(r"time lag $\tau$")
     ax1.set_ylabel(r"$R_z(\tau)$")
-    ax1.set_title(r"critical tail ($z=2$ puts slowest mode at $\lambda+z=0$)", fontsize=8)
     ax1.legend(frameon=False, fontsize=6.5, loc="upper right")
     add_panel_label(ax1, "b")
     clean_axis(ax1)
@@ -385,25 +365,16 @@ def gif_spectral_modes() -> None:
     z = Z_SHIFT
     lam = np.linspace(-2.0, 2.0, 400)
     rho = wigner_density(lam)
-    rho_max = float(rho.max())  # semicircle peak ≈ 1/π
+    rho_max = float(rho.max())
 
-    # Keyframe lags with duplicate frames so each stage is readable.
-    keyframes: list[tuple[float, int]] = [
-        (0.0, 5),
-        (1.0, 4),
-        (3.0, 4),
-        (8.0, 4),
-        (15.0, 4),
-        (25.0, 5),
-        (35.0, 6),
-    ]
-    frame_taus = [tau for tau, n_hold in keyframes for _ in range(n_hold)]
+    # Smooth, evenly spaced lags for continuous motion.
+    frame_taus = np.linspace(0.0, 35.0, 90)
 
     tau_dense = np.linspace(0.0, 35.0, 400)
     r_dense = response_theory(tau_dense, z)
 
     fig = plt.figure(figsize=(7.2, 3.8), facecolor=BLOG_BG)
-    gs = GridSpec(2, 2, height_ratios=[1, 0.14], width_ratios=[1.15, 0.85], hspace=0.38, wspace=0.28)
+    gs = GridSpec(2, 2, height_ratios=[1, 0.1], width_ratios=[1.15, 0.85], hspace=0.32, wspace=0.28)
     ax_w = fig.add_subplot(gs[0, 0])
     ax_rt = fig.add_subplot(gs[0, 1])
     ax_banner = fig.add_subplot(gs[1, :])
@@ -415,20 +386,20 @@ def gif_spectral_modes() -> None:
     ax_w.axvline(-2.0, color="#94a3b8", ls="--", lw=1.0, alpha=0.8)
     ax_w.text(-1.95, rho_max * 0.97, r"$\lambda=-2$", fontsize=7, color=BLOG_MUTED, ha="left", va="top")
     ax_w.set_xlim(-2.2, 2.2)
-    ax_w.set_ylim(0, rho_max * 1.12)  # fixed: always show full semicircle
+    ax_w.set_ylim(0, rho_max * 1.12)
     ax_w.set_xlabel(r"eigenvalue $\lambda$")
     ax_w.set_ylabel("integrand weight")
-    ax_w.set_title("which modes build the response at this lag?", fontsize=8)
+    ax_w.set_title(r"$W(\lambda,\tau)$ at current $\tau$", fontsize=8)
     ax_w.legend(frameon=False, fontsize=6.5, loc="upper right")
 
     (line,) = ax_rt.plot([], [], color="#f97316", lw=2.4)
-    (marker,) = ax_rt.plot([], [], "o", color="#f97316", ms=5, zorder=3)
+    (marker,) = ax_rt.plot([], [], "o", color="#f97316", ms=4, zorder=3)
     ax_rt.semilogy(tau_dense, r_dense, color="#cbd5e1", lw=1.0, zorder=0)
     ax_rt.set_xlim(-0.5, 35.5)
     ax_rt.set_ylim(r_dense[r_dense > 0].min() * 0.5, r_dense.max() * 1.4)
     ax_rt.set_xlabel(r"time lag $\tau$")
     ax_rt.set_ylabel(r"$R_z(\tau)$")
-    ax_rt.set_title("integrated response so far", fontsize=8)
+    ax_rt.set_title("integrated response", fontsize=8)
 
     banner = ax_banner.text(
         0.5,
@@ -436,33 +407,23 @@ def gif_spectral_modes() -> None:
         "",
         ha="center",
         va="center",
-        fontsize=8.5,
+        fontsize=9,
         color=BLOG_FG,
         transform=ax_banner.transAxes,
     )
 
     _prep_blog_style(fig)
 
-    def _banner_text(tau: float) -> str:
-        if tau < 0.5:
-            return rf"$\tau={tau:.1f}$: orange curve matches the semicircle — all modes still contribute"
-        if tau < 5.0:
-            return rf"$\tau={tau:.1f}$: fast modes ($\lambda > 0$) are dying off; curve narrows leftward"
-        if tau < 12.0:
-            return rf"$\tau={tau:.1f}$: only modes with small $\lambda$ remain; weight shifts toward $\lambda=-2$"
-        return rf"$\tau={tau:.1f}$: integrand concentrated at the spectral edge ($\lambda=-2$); tail is slow"
-
     def update(frame: int):
-        tau = frame_taus[frame]
+        tau = float(frame_taus[frame])
         w = rho * np.exp(-(lam + z) * tau)
         active.set_ydata(w)
-        r_tau = float(np.trapezoid(w, lam))
         line.set_data(tau_dense[tau_dense <= tau], response_theory(tau_dense[tau_dense <= tau], z))
-        marker.set_data([tau], [r_tau])
-        banner.set_text(_banner_text(tau))
+        marker.set_data([tau], [float(response_theory(np.array([tau]), z)[0])])
+        banner.set_text(rf"$\tau = {tau:.1f}$")
         return active, line, marker, banner
 
-    gif_fps = 1.2  # ~0.8 s per frame; holds make total runtime ~25 s
+    gif_fps = 10.0
     ani = animation.FuncAnimation(fig, update, frames=len(frame_taus), interval=1000 / gif_fps, blit=False)
     gif_path = ASSETS / "gif-spectral-modes-response.gif"
     gif_path.parent.mkdir(parents=True, exist_ok=True)
