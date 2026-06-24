@@ -127,7 +127,7 @@ This is the conceptual bridge to learning. In quantum mechanics, the path integr
 
 ---
 
-## The GOE warmup: a linear system we can check
+## The GOE warmup
 
 Bordelon and Pehlevan start with
 
@@ -323,7 +323,7 @@ $$
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig2-response-decay.png" alt="Two-panel response decay: linear-time overview and log-log tail" width="640"/>
-  <figcaption>Figure 2. Shifted response $$R_z(\tau)$$ with $$z=2$$.</figcaption>
+  <figcaption>Figure 2. Shifted response R<sub>z</sub>(τ) with z = 2.</figcaption>
 </figure>
 
 I also checked finite-$$N$$ convergence: for each matrix size $$N$$, the relative L2 error between $$R_z(\tau)$$ and the semicircle integral falls as $$N$$ grows from hundreds to thousands. Figure 2 already shows agreement at $$N=4000$$, so I skip a separate plot.
@@ -476,7 +476,7 @@ When we plot loss versus time, we are already doing statistical physics: throwin
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig7-linear-regression.png" alt="Train and test loss curves for random linear regression at several alpha=P/N" width="520"/>
-  <figcaption>Figure 7. Random linear regression with label noise $$\sigma = 0.1$$. Solid: train loss. Dashed: test loss. Color: $$\alpha = P/N$$.</figcaption>
+  <figcaption>Figure 7. Random linear regression with label noise σ = 0.1. Solid: train loss. Dashed: test loss. Color: α = P/N.</figcaption>
 </figure>
 
 The paper goes further in random feature models near interpolation, where test loss can be non-monotonic and the full two-time $$C(t,t’)$$ carries information beyond the spectrum alone. I have not reproduced those curves here; this post stays on the GOE example where we have a calibration case.
