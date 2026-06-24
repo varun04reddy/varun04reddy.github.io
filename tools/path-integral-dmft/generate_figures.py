@@ -19,16 +19,11 @@ ASSETS = REPO / "assets/img/blog/path-integral"
 OUT = REPO / "experiments/path-integral-dmft/outputs"
 SEED = 0
 Z_SHIFT = 2.0
+DPI = 600
 
 _skill = Path(os.environ.get("AGENT_SKILLS_ROOT", Path.home() / ".agent-skills"))
 sys.path.insert(0, str(_skill / "research-plotting" / "scripts"))
-from research_plotting import (  # noqa: E402
-    add_panel_label,
-    clean_axis,
-    plot_heatmap,
-    save_figure,
-    set_research_style,
-)
+from research_plotting import add_panel_label, clean_axis, set_research_style  # noqa: E402
 
 
 def rng() -> np.random.Generator:
@@ -60,25 +55,40 @@ def response_theory(tau: np.ndarray, z: float = Z_SHIFT) -> np.ndarray:
     return out
 
 
+def _prep_transparent(fig: plt.Figure) -> None:
+    fig.patch.set_alpha(0.0)
+    for ax in fig.get_axes():
+        ax.patch.set_alpha(0.0)
+
+
+def _save_blog(fig: plt.Figure, stem: Path, web_name: str) -> None:
+    """PNG with transparent background for light/dark blog themes."""
+    _prep_transparent(fig)
+    stem.parent.mkdir(parents=True, exist_ok=True)
+    png = stem.with_suffix(".png")
+    fig.savefig(png, dpi=DPI, bbox_inches="tight", pad_inches=0.04, transparent=True)
+    _web(png, ASSETS / web_name)
+    plt.close(fig)
+
+
 def fig1_semicircle(gen: np.random.Generator) -> None:
     n = 4000
     _, eig = goe_matrix(n, gen)
     lam = np.linspace(-2.05, 2.05, 600)
     rho = wigner_density(lam)
+    peak = 1.0 / np.pi  # semicircle maximum at lambda=0
 
-    fig, ax = plt.subplots(figsize=(5.2, 3.4))
-    ax.hist(eig, bins=140, density=True, color="#6366f1", alpha=0.75, edgecolor="none")
+    fig, ax = plt.subplots(figsize=(5.4, 3.6))
+    ax.hist(eig, bins=140, density=True, color="#6366f1", alpha=0.8, edgecolor="none")
     ax.plot(lam, rho, color="#fbbf24", lw=2.5, label=r"Wigner semicircle")
     ax.set_xlabel(r"eigenvalue $\lambda$")
     ax.set_ylabel(r"density $\rho(\lambda)$")
-    ax.set_xlim(-2.3, 2.3)
-    ax.set_ylim(0, 0.22)
+    ax.set_xlim(-2.35, 2.35)
+    ax.set_ylim(0, peak * 1.12)
     ax.legend(frameon=False, fontsize=8)
     clean_axis(ax)
     fig.tight_layout()
-    save_figure(fig, OUT / "fig1_goe_semicircle")
-    _web(OUT / "fig1_goe_semicircle.png", ASSETS / "fig1-goe-semicircle.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig1_goe_semicircle", "fig1-goe-semicircle.png")
 
 
 def fig2_response_decay(gen: np.random.Generator) -> None:
@@ -90,7 +100,7 @@ def fig2_response_decay(gen: np.random.Generator) -> None:
     ref = tau ** (-1.5)
     ref *= r_th[np.argmin(np.abs(tau - 10.0))] / ref[np.argmin(np.abs(tau - 10.0))]
 
-    fig, ax = plt.subplots(figsize=(5.0, 3.6))
+    fig, ax = plt.subplots(figsize=(5.2, 3.8))
     ax.loglog(tau, r_num, color="#f97316", lw=2.0, label=rf"finite $N={n}$")
     ax.loglog(tau, r_th, color="#1e293b", ls="--", lw=1.8, label="theory")
     ax.loglog(tau, ref, color="#94a3b8", ls=":", lw=1.5, label=r"$\tau^{-3/2}$")
@@ -99,9 +109,7 @@ def fig2_response_decay(gen: np.random.Generator) -> None:
     ax.legend(frameon=False, fontsize=7, loc="upper right")
     clean_axis(ax)
     fig.tight_layout()
-    save_figure(fig, OUT / "fig2_response_decay")
-    _web(OUT / "fig2_response_decay.png", ASSETS / "fig2-response-decay.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig2_response_decay", "fig2-response-decay.png")
 
 
 def fig3_mode_decay() -> None:
@@ -111,8 +119,8 @@ def fig3_mode_decay() -> None:
     rho = wigner_density(lam)
     w = rho[None, :] * np.exp(-(lam[None, :] + z) * tau[:, None])
 
-    fig = plt.figure(figsize=(6.8, 3.8))
-    gs = GridSpec(1, 2, width_ratios=[4, 0.15], wspace=0.08)
+    fig = plt.figure(figsize=(7.0, 3.8))
+    gs = GridSpec(1, 2, width_ratios=[4, 0.18], wspace=0.1)
     ax = fig.add_subplot(gs[0, 0])
     ax_r = fig.add_subplot(gs[0, 1])
     im = ax.imshow(
@@ -124,22 +132,18 @@ def fig3_mode_decay() -> None:
         norm=mcolors.LogNorm(vmin=max(w[w > 0].min(), 1e-8), vmax=w.max()),
     )
     ax.axvline(-2.0, color="#22d3ee", ls="--", lw=1.0, alpha=0.9)
-    ax.text(-1.95, 47, "slow edge", color="#22d3ee", fontsize=7, ha="left", va="top")
+    ax.text(-1.92, 47, "slow edge", color="#22d3ee", fontsize=7, ha="left", va="top")
     ax.set_xlabel(r"eigenvalue $\lambda$")
     ax.set_ylabel(r"time lag $\tau$")
     ax.set_title(r"$W(\lambda,\tau)=\rho(\lambda)\,e^{-(\lambda+z)\tau}$", fontsize=9)
-
     r_tau = trapezoid(w, lam, axis=1)
     ax_r.plot(r_tau, tau, color="#fbbf24", lw=1.5)
     ax_r.set_xscale("log")
     ax_r.set_xlabel(r"$R_z(\tau)$", fontsize=8)
     ax_r.set_yticks([])
-    ax_r.tick_params(labelsize=6)
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02, label="weight")
     fig.tight_layout()
-    save_figure(fig, OUT / "fig3_mode_decay")
-    _web(OUT / "fig3_mode_decay.png", ASSETS / "fig3-mode-decay.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig3_mode_decay", "fig3-mode-decay.png")
 
 
 def _two_time_from_eigs(eig: np.ndarray, z: float, tgrid: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -160,59 +164,60 @@ def _two_time_from_eigs(eig: np.ndarray, z: float, tgrid: np.ndarray) -> tuple[n
 
 
 def fig4_correlation(gen: np.random.Generator) -> None:
+    """Zoomed correlation: C depends on t+t', so structure lives near small summed time."""
     n = 2000
     _, eig = goe_matrix(n, gen)
     z = 2.0
-    tgrid = np.linspace(0.0, 20.0, 160)
+    tgrid = np.linspace(0.0, 8.0, 140)
     c, _ = _two_time_from_eigs(eig, z, tgrid)
+    c_slice = np.array([np.mean(np.exp(-(eig + z) * st)) for st in tgrid])
+    c_slice /= c_slice[0]
 
-    fig, ax = plt.subplots(figsize=(4.8, 4.0))
-    im = ax.imshow(
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.4))
+    im = axes[0].imshow(
         c,
         origin="lower",
-        aspect="auto",
+        aspect="equal",
         extent=[tgrid[0], tgrid[-1], tgrid[0], tgrid[-1]],
-        cmap="magma",
-        vmin=0,
-        vmax=1,
+        cmap="turbo",
+        norm=mcolors.PowerNorm(gamma=0.45, vmin=0, vmax=1),
     )
-    ax.set_xlabel(r"time $t$")
-    ax.set_ylabel(r"time $t'$")
-    ax.set_xticks(np.arange(0, 21, 4))
-    ax.set_yticks(np.arange(0, 21, 4))
-    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02, label=r"$C(t,t')/C(0,0)$")
+    axes[0].set_xlabel(r"time $t$")
+    axes[0].set_ylabel(r"time $t'$")
+    axes[0].set_title(r"$C(t,t')/C(0,0)$, zoom $t,t'\in[0,8]$", fontsize=8)
+    fig.colorbar(im, ax=axes[0], fraction=0.046, pad=0.02)
+
+    axes[1].semilogy(tgrid, c_slice, color="#6366f1", lw=2)
+    axes[1].set_xlabel(r"summed time $s = t + t'$")
+    axes[1].set_ylabel(r"$C(s)/C(0)$")
+    axes[1].set_title("symmetric GOE: $C(t,t') = R(s)$", fontsize=8)
+    clean_axis(axes[1])
     fig.tight_layout()
-    save_figure(fig, OUT / "fig4_correlation")
-    _web(OUT / "fig4_correlation.png", ASSETS / "fig4-correlation-heatmap.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig4_correlation", "fig4-correlation-heatmap.png")
 
 
 def fig5_response_heatmap(gen: np.random.Generator) -> None:
     n = 2000
     _, eig = goe_matrix(n, gen)
     z = 2.0
-    tgrid = np.linspace(0.0, 20.0, 160)
+    tgrid = np.linspace(0.0, 10.0, 140)
     _, r = _two_time_from_eigs(eig, z, tgrid)
 
-    fig, ax = plt.subplots(figsize=(4.8, 4.0))
+    fig, ax = plt.subplots(figsize=(4.8, 4.2))
     im = ax.imshow(
         r,
         origin="lower",
-        aspect="auto",
+        aspect="equal",
         extent=[tgrid[0], tgrid[-1], tgrid[0], tgrid[-1]],
         cmap="plasma",
-        vmin=0,
-        vmax=1,
+        norm=mcolors.PowerNorm(gamma=0.5, vmin=0, vmax=1),
     )
     ax.set_xlabel(r"time $t$")
     ax.set_ylabel(r"time $t'$")
-    ax.set_xticks(np.arange(0, 21, 4))
-    ax.set_yticks(np.arange(0, 21, 4))
+    ax.set_title(r"$R(t,t')$, zoom $t,t'\in[0,10]$", fontsize=8)
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02, label=r"$R(t,t')$")
     fig.tight_layout()
-    save_figure(fig, OUT / "fig5_response")
-    _web(OUT / "fig5_response.png", ASSETS / "fig5-response-heatmap.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig5_response", "fig5-response-heatmap.png")
 
 
 def fig6_sym_antisym(gen: np.random.Generator) -> None:
@@ -227,8 +232,10 @@ def fig6_sym_antisym(gen: np.random.Generator) -> None:
     r_sym = response_from_eigs(eig_sym, tau, z)
     r_anti = np.array([np.mean(np.exp(eig_anti * t)).real for t in tau])
 
-    fig, axes = plt.subplots(2, 2, figsize=(7.2, 5.2))
+    fig, axes = plt.subplots(2, 2, figsize=(7.4, 5.4))
     axes[0, 0].scatter(eig_sym.real, np.zeros_like(eig_sym), s=4, c="#60a5fa", alpha=0.5)
+    axes[0, 0].set_xlim(-2.5, 2.5)
+    axes[0, 0].set_ylim(-0.15, 0.15)
     axes[0, 0].set_xlabel(r"Re$(\lambda)$")
     axes[0, 0].set_ylabel(r"Im$(\lambda)$")
     axes[0, 0].set_title("symmetric $M$", fontsize=8)
@@ -258,9 +265,7 @@ def fig6_sym_antisym(gen: np.random.Generator) -> None:
     clean_axis(axes[1, 1])
 
     fig.tight_layout()
-    save_figure(fig, OUT / "fig6_sym_antisym")
-    _web(OUT / "fig6_sym_antisym.png", ASSETS / "fig6-sym-antisym.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig6_sym_antisym", "fig6-sym-antisym.png")
 
 
 def fig7_linear_regression(gen: np.random.Generator) -> None:
@@ -269,7 +274,7 @@ def fig7_linear_regression(gen: np.random.Generator) -> None:
     sigma = 0.1
     steps = 800
     eta = 0.3
-    fig, ax = plt.subplots(figsize=(5.4, 3.6))
+    fig, ax = plt.subplots(figsize=(5.6, 3.8))
     cmap = plt.get_cmap("viridis")
     norm = mcolors.Normalize(vmin=min(alphas), vmax=max(alphas))
 
@@ -302,9 +307,25 @@ def fig7_linear_regression(gen: np.random.Generator) -> None:
     ax.text(0.03, 0.08, "solid: train  ·  dashed: test", transform=ax.transAxes, fontsize=7, color="#64748b")
     clean_axis(ax)
     fig.tight_layout()
-    save_figure(fig, OUT / "fig7_linear_regression")
-    _web(OUT / "fig7_linear_regression.png", ASSETS / "fig7-linear-regression.png")
-    plt.close(fig)
+    _save_blog(fig, OUT / "fig7_linear_regression", "fig7-linear-regression.png")
+
+
+def fig8_finite_n_convergence(gen: np.random.Generator) -> None:
+    ns = [500, 1000, 2000, 4000, 8000]
+    tau = np.logspace(-1, 2, 200)
+    r_th = response_theory(tau, Z_SHIFT)
+    errors = []
+    for n in ns:
+        _, eig = goe_matrix(n, gen)
+        r_num = response_from_eigs(eig, tau, Z_SHIFT)
+        errors.append(float(np.linalg.norm(r_num - r_th) / np.linalg.norm(r_th)))
+    fig, ax = plt.subplots(figsize=(4.4, 3.2))
+    ax.semilogy(ns, errors, "o-", color="#6366f1", lw=1.8, ms=6)
+    ax.set_xlabel(r"$N$")
+    ax.set_ylabel(r"$\|R_{\mathrm{num}} - R_{\mathrm{th}}\|_2 / \|R_{\mathrm{th}}\|_2$")
+    clean_axis(ax)
+    fig.tight_layout()
+    _save_blog(fig, OUT / "fig8_finite_n", "fig8-finite-n-convergence.png")
 
 
 def gif_spectral_modes() -> None:
@@ -314,22 +335,20 @@ def gif_spectral_modes() -> None:
     tau_vals = np.linspace(0.5, 40.0, 60)
     r_full = response_theory(tau_vals, z)
 
-    fig = plt.figure(figsize=(7.0, 3.2), facecolor="#0f172a")
+    fig = plt.figure(figsize=(7.2, 3.2), facecolor="none")
     gs = GridSpec(1, 3, width_ratios=[1, 1.4, 1], wspace=0.25)
     ax_rho = fig.add_subplot(gs[0, 0])
     ax_w = fig.add_subplot(gs[0, 1])
     ax_rt = fig.add_subplot(gs[0, 2])
     for ax in (ax_rho, ax_w, ax_rt):
-        ax.set_facecolor("#0f172a")
-        ax.tick_params(colors="#cbd5e1", labelsize=7)
-        for spine in ax.spines.values():
-            spine.set_color("#334155")
+        ax.set_facecolor("none")
+        ax.patch.set_alpha(0.0)
 
-    ax_rho.fill_between(lam, rho, color="#6366f1", alpha=0.8)
-    ax_rho.set_xlim(-2, 2)
-    ax_rho.set_ylim(0, 0.2)
-    ax_rho.set_xlabel(r"$\rho(\lambda)$", color="#e2e8f0", fontsize=8)
-    ax_rho.set_title("spectrum", color="#e2e8f0", fontsize=9)
+    ax_rho.fill_between(lam, rho, color="#6366f1", alpha=0.85)
+    ax_rho.set_xlim(-2.2, 2.2)
+    ax_rho.set_ylim(0, 1.0 / np.pi * 1.05)
+    ax_rho.set_xlabel(r"$\rho(\lambda)$", fontsize=8)
+    ax_rho.set_title("spectrum", fontsize=9)
 
     w0 = rho[None, :] * np.exp(-(lam[None, :] + z) * tau_vals[0])
     im = ax_w.imshow(
@@ -341,27 +360,24 @@ def gif_spectral_modes() -> None:
         vmin=0,
         vmax=(rho[None, :] * np.exp(-(lam[None, :] + z) * 0.01)).max(),
     )
-    ax_w.axhline(0, color="#22d3ee", lw=0.8)
-    ax_w.set_xlabel(r"$\lambda$", color="#e2e8f0", fontsize=8)
-    ax_w.set_ylabel(r"$\tau$", color="#e2e8f0", fontsize=8)
-    ax_w.set_title("mode weights", color="#e2e8f0", fontsize=9)
+    ax_w.set_xlabel(r"$\lambda$", fontsize=8)
+    ax_w.set_ylabel(r"$\tau$", fontsize=8)
+    ax_w.set_title("mode weights", fontsize=9)
 
-    (line,) = ax_rt.plot([], [], color="#fbbf24", lw=2)
+    (line,) = ax_rt.plot([], [], color="#f97316", lw=2)
     ax_rt.set_xscale("log")
     ax_rt.set_yscale("log")
     ax_rt.set_xlim(tau_vals[1], tau_vals[-1])
     ax_rt.set_ylim(r_full.min() * 0.5, r_full.max() * 2)
-    ax_rt.set_xlabel(r"$\tau$", color="#e2e8f0", fontsize=8)
-    ax_rt.set_ylabel(r"$R_z(\tau)$", color="#e2e8f0", fontsize=8)
-    ax_rt.set_title("response", color="#e2e8f0", fontsize=9)
+    ax_rt.set_xlabel(r"$\tau$", fontsize=8)
+    ax_rt.set_ylabel(r"$R_z(\tau)$", fontsize=8)
+    ax_rt.set_title("response", fontsize=9)
 
     def update(frame: int):
         tau = tau_vals[frame]
-        w = rho * np.exp(-(lam + z) * tau)
         data = rho[None, :] * np.exp(-(lam[None, :] + z) * np.array([tau]))
         im.set_data(data)
         im.set_extent([lam[0], lam[-1], 0, tau])
-        ax_w.axhline(tau, color="#22d3ee", lw=0.8)
         line.set_data(tau_vals[: frame + 1], r_full[: frame + 1])
         return im, line
 
@@ -373,32 +389,13 @@ def gif_spectral_modes() -> None:
     print(f"GIF saved to {gif_path}")
 
 
-def fig8_finite_n_convergence(gen: np.random.Generator) -> None:
-    """L2 error between finite-N response and semicircle theory vs N."""
-    ns = [500, 1000, 2000, 4000, 8000]
-    tau = np.logspace(-1, 2, 200)
-    r_th = response_theory(tau, Z_SHIFT)
-    errors = []
-    for n in ns:
-        _, eig = goe_matrix(n, gen)
-        r_num = response_from_eigs(eig, tau, Z_SHIFT)
-        errors.append(float(np.linalg.norm(r_num - r_th) / np.linalg.norm(r_th)))
-    fig, ax = plt.subplots(figsize=(4.2, 3.0))
-    ax.semilogy(ns, errors, "o-", color="#6366f1", lw=1.8, ms=6)
-    ax.set_xlabel(r"$N$")
-    ax.set_ylabel(r"$\|R_{\mathrm{num}} - R_{\mathrm{th}}\|_2 / \|R_{\mathrm{th}}\|_2$")
-    clean_axis(ax)
-    fig.tight_layout()
-    save_figure(fig, OUT / "fig8_finite_n")
-    _web(OUT / "fig8_finite_n.png", ASSETS / "fig8-finite-n-convergence.png")
-    plt.close(fig)
-
-
 def _web(src: Path, dst: Path) -> None:
     from PIL import Image
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     img = Image.open(src)
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
     w, h = img.size
     if w > 1200:
         img = img.resize((1200, int(h * 1200 / w)), Image.Resampling.LANCZOS)
