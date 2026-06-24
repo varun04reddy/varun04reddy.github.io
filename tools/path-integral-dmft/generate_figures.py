@@ -385,33 +385,47 @@ def gif_spectral_modes() -> None:
     z = Z_SHIFT
     lam = np.linspace(-2.0, 2.0, 400)
     rho = wigner_density(lam)
-    tau_vals = np.linspace(0.3, 35.0, 55)
-    r_full = response_theory(tau_vals, z)
-    w_max = (rho * np.exp(-(lam + z) * tau_vals[0])).max()
+    rho_max = float(rho.max())  # semicircle peak ≈ 1/π
 
-    fig = plt.figure(figsize=(7.0, 3.6), facecolor=BLOG_BG)
-    gs = GridSpec(2, 2, height_ratios=[1, 0.12], width_ratios=[1.15, 0.85], hspace=0.35, wspace=0.28)
+    # Keyframe lags with duplicate frames so each stage is readable.
+    keyframes: list[tuple[float, int]] = [
+        (0.0, 5),
+        (1.0, 4),
+        (3.0, 4),
+        (8.0, 4),
+        (15.0, 4),
+        (25.0, 5),
+        (35.0, 6),
+    ]
+    frame_taus = [tau for tau, n_hold in keyframes for _ in range(n_hold)]
+
+    tau_dense = np.linspace(0.0, 35.0, 400)
+    r_dense = response_theory(tau_dense, z)
+
+    fig = plt.figure(figsize=(7.2, 3.8), facecolor=BLOG_BG)
+    gs = GridSpec(2, 2, height_ratios=[1, 0.14], width_ratios=[1.15, 0.85], hspace=0.38, wspace=0.28)
     ax_w = fig.add_subplot(gs[0, 0])
     ax_rt = fig.add_subplot(gs[0, 1])
     ax_banner = fig.add_subplot(gs[1, :])
     ax_banner.axis("off")
 
     ax_w.fill_between(lam, np.zeros_like(lam), rho, color="#6366f1", alpha=0.25, label=r"$\rho(\lambda)$")
-    ax_w.plot(lam, rho, color="#6366f1", lw=1.2, alpha=0.5)
-    (active,) = ax_w.plot(lam, rho, color="#f97316", lw=2.2, label=r"$W(\lambda,\tau)$")
+    ax_w.plot(lam, rho, color="#6366f1", lw=1.4, alpha=0.7)
+    (active,) = ax_w.plot(lam, rho, color="#f97316", lw=2.4, label=r"$W(\lambda,\tau)$")
     ax_w.axvline(-2.0, color="#94a3b8", ls="--", lw=1.0, alpha=0.8)
-    ax_w.text(-1.95, w_max * 0.92, r"$\lambda=-2$", fontsize=7, color=BLOG_MUTED, ha="left")
+    ax_w.text(-1.95, rho_max * 0.97, r"$\lambda=-2$", fontsize=7, color=BLOG_MUTED, ha="left", va="top")
     ax_w.set_xlim(-2.2, 2.2)
-    ax_w.set_ylim(0, w_max * 1.08)
+    ax_w.set_ylim(0, rho_max * 1.12)  # fixed: always show full semicircle
     ax_w.set_xlabel(r"eigenvalue $\lambda$")
     ax_w.set_ylabel("integrand weight")
     ax_w.set_title("which modes build the response at this lag?", fontsize=8)
     ax_w.legend(frameon=False, fontsize=6.5, loc="upper right")
 
-    (line,) = ax_rt.plot([], [], color="#f97316", lw=2.2)
-    ax_rt.semilogy(tau_vals, r_full, color="#cbd5e1", lw=1.0, zorder=0)
-    ax_rt.set_xlim(tau_vals[0], tau_vals[-1])
-    ax_rt.set_ylim(r_full.min() * 0.4, r_full.max() * 1.6)
+    (line,) = ax_rt.plot([], [], color="#f97316", lw=2.4)
+    (marker,) = ax_rt.plot([], [], "o", color="#f97316", ms=5, zorder=3)
+    ax_rt.semilogy(tau_dense, r_dense, color="#cbd5e1", lw=1.0, zorder=0)
+    ax_rt.set_xlim(-0.5, 35.5)
+    ax_rt.set_ylim(r_dense[r_dense > 0].min() * 0.5, r_dense.max() * 1.4)
     ax_rt.set_xlabel(r"time lag $\tau$")
     ax_rt.set_ylabel(r"$R_z(\tau)$")
     ax_rt.set_title("integrated response so far", fontsize=8)
@@ -422,31 +436,39 @@ def gif_spectral_modes() -> None:
         "",
         ha="center",
         va="center",
-        fontsize=9,
+        fontsize=8.5,
         color=BLOG_FG,
         transform=ax_banner.transAxes,
     )
 
     _prep_blog_style(fig)
 
+    def _banner_text(tau: float) -> str:
+        if tau < 0.5:
+            return rf"$\tau={tau:.1f}$: orange curve matches the semicircle — all modes still contribute"
+        if tau < 5.0:
+            return rf"$\tau={tau:.1f}$: fast modes ($\lambda > 0$) are dying off; curve narrows leftward"
+        if tau < 12.0:
+            return rf"$\tau={tau:.1f}$: only modes with small $\lambda$ remain; weight shifts toward $\lambda=-2$"
+        return rf"$\tau={tau:.1f}$: integrand concentrated at the spectral edge ($\lambda=-2$); tail is slow"
+
     def update(frame: int):
-        tau = tau_vals[frame]
+        tau = frame_taus[frame]
         w = rho * np.exp(-(lam + z) * tau)
         active.set_ydata(w)
-        ax_w.set_ylim(0, max(w.max(), w_max * 0.05) * 1.12)
-        line.set_data(tau_vals[: frame + 1], r_full[: frame + 1])
-        banner.set_text(
-            rf"At lag $\tau={tau:.1f}$: fast modes ($\lambda\gg -2$) have decayed; "
-            rf"weight concentrates near $\lambda=-2$"
-        )
-        return active, line, banner
+        r_tau = float(np.trapezoid(w, lam))
+        line.set_data(tau_dense[tau_dense <= tau], response_theory(tau_dense[tau_dense <= tau], z))
+        marker.set_data([tau], [r_tau])
+        banner.set_text(_banner_text(tau))
+        return active, line, marker, banner
 
-    ani = animation.FuncAnimation(fig, update, frames=len(tau_vals), interval=90, blit=False)
+    gif_fps = 1.2  # ~0.8 s per frame; holds make total runtime ~25 s
+    ani = animation.FuncAnimation(fig, update, frames=len(frame_taus), interval=1000 / gif_fps, blit=False)
     gif_path = ASSETS / "gif-spectral-modes-response.gif"
     gif_path.parent.mkdir(parents=True, exist_ok=True)
-    ani.save(gif_path, writer=animation.PillowWriter(fps=10), savefig_kwargs={"facecolor": BLOG_BG})
+    ani.save(gif_path, writer=animation.PillowWriter(fps=gif_fps), savefig_kwargs={"facecolor": BLOG_BG})
     plt.close(fig)
-    print(f"GIF saved to {gif_path}")
+    print(f"GIF saved to {gif_path} ({len(frame_taus)} frames @ {gif_fps} fps)")
 
 
 def _web(src: Path, dst: Path) -> None:

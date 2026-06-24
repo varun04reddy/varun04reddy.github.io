@@ -178,12 +178,7 @@ With $$z = 2$$ the slowest modes sit at the spectral edge $$\lambda = -2$$, wher
   <figcaption>Figure 2. Shifted response R<sub>z</sub>(τ) with z = 2. Left (a): semilog plot on linear τ — how memory of a perturbation decays. Right (b): log–log tail vs. theory; the dotted line is a τ<sup>−3/2</sup> reference slope. Orange: one GOE sample at N = 4000. Dashed: semicircle integral.</figcaption>
 </figure>
 
-Figure 2b is a separate check that finite dimension is not fooling us. For each matrix size $$N$$ we compute the full response curve and compare it to the semicircle prediction. The relative error should shrink as $$N$$ grows — that is the numerical version of "take $$N$$ large after averaging."
-
-<figure class="blog-figure">
-  <img src="/assets/img/blog/path-integral/fig8-finite-n-convergence.png" alt="Relative L2 error vs N for finite-N response" width="400"/>
-  <figcaption>Figure 2b. Relative L2 error between finite-N R<sub>z</sub>(τ) and the large-N semicircle prediction, vs. N. Error falls as dimension grows.</figcaption>
-</figure>
+I also checked that finite dimension is not fooling us: for each matrix size N we can compare the full R<sub>z</sub>(τ) curve to the semicircle integral, and the relative L2 error falls as N grows from hundreds to thousands. That is the numerical version of "take N large after averaging," but the plot is not essential — Figure 2 already shows agreement at N = 4000.
 
 **What Figure 3 is showing.** The response is an integral over eigenvalues. Figure 3 plots the integrand W(λ, τ) = ρ(λ) e<sup>−(λ+z)τ</sup> as a heatmap: horizontal axis is λ, vertical axis is τ, color is how much weight that eigenvalue carries at that lag. At small τ the whole semicircle contributes (bright band across all λ). As τ grows, the exponential kills everything except modes near λ = −2, so the bright region creeps to the left edge. The yellow curve on the right is R<sub>z</sub>(τ) obtained by integrating W over λ — the same object as Figure 2, but seen as a sum over modes.
 
