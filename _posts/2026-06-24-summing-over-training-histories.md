@@ -94,12 +94,12 @@ The point of the formalism is not to solve this one system the hard way. The poi
 
 The theory asks what happens typically as $$N \to \infty$$ after averaging over $$M$$. That is where $$C$$ and $$R$$ become the actual variables.
 
-<figure style="text-align: center;">
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig1-goe-semicircle.png" alt="GOE eigenvalue histogram with Wigner semicircle overlay" width="520"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1. Eigenvalues of a random symmetric matrix (histogram) against the Wigner semicircle (gold). Microscopic entries are noise; the macroscopic spectrum is law. Matches the GOE warmup in Bordelon and Pehlevan.</figcaption>
+  <figcaption>Figure 1. Histogram of eigenvalues from one random symmetric N×N matrix (purple bars) against the Wigner semicircle prediction (gold curve). Individual matrix entries are random; the bulk eigenvalue density is not. This is the static sanity check before we look at time.</figcaption>
 </figure>
 
-Before we even talk about time, disorder in the entries produces a deterministic eigenvalue density. Figure 1 is the static hint that averaging works.
+Before we even talk about time, disorder in the entries produces a deterministic eigenvalue density. Figure 1 is the static hint that averaging works: draw a fresh GOE matrix, histogram its eigenvalues, and the semicircle shows up. If the path-integral / DMFT machinery is doing its job, every time-dependent quantity we compute later should be built from this same ρ(λ).
 
 ---
 
@@ -171,26 +171,32 @@ $$
 
 With $$z = 2$$ the slowest modes sit at the spectral edge $$\lambda = -2$$, where $$\lambda + z = 0$$. The late-time response is critical (power-law), not exponentially decaying. Their Figure 2 shows this shifted response and the $$\tau^{-3/2}$$ tail.
 
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/path-integral/fig2-response-decay.png" alt="Log-log plot of response decay with theory and tau^{-3/2} reference" width="500"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2. Shifted response $$R_z(\tau)$$ with $$z=2$$: finite GOE ($$N=4000$$, orange) vs. semicircle integral (dashed). Late-time slope approaches $$\tau^{-3/2}$$ (dotted).</figcaption>
+**What Figure 2 is measuring.** Imagine injecting a unit perturbation into the system and asking how much of it remains after a lag $$\tau$$. That scalar is $$R_z(\tau)$$. Because the dynamics are linear, it equals a trace over eigenmodes: each mode $$\lambda$$ contributes $$\rho(\lambda)\, e^{-(\lambda+z)\tau}$$. Panel (a) plots the full curve on a linear time axis so you can see the decay directly. Panel (b) zooms into the late-time tail on log–log axes and overlays a $$\tau^{-3/2}$$ reference. The orange curve is one finite-$$N$$ draw; the dashed curve is the semicircle integral (the large-$$N$$ answer). They should sit on top of each other, and the tail should parallel the dotted line.
+
+<figure class="blog-figure">
+  <img src="/assets/img/blog/path-integral/fig2-response-decay.png" alt="Two-panel response decay: linear-time overview and log-log tail" width="640"/>
+  <figcaption>Figure 2. Shifted response R<sub>z</sub>(τ) with z = 2. Left (a): semilog plot on linear τ — how memory of a perturbation decays. Right (b): log–log tail vs. theory; the dotted line is a τ<sup>−3/2</sup> reference slope. Orange: one GOE sample at N = 4000. Dashed: semicircle integral.</figcaption>
 </figure>
 
-<figure style="text-align: center;">
+Figure 2b is a separate check that finite dimension is not fooling us. For each matrix size $$N$$ we compute the full response curve and compare it to the semicircle prediction. The relative error should shrink as $$N$$ grows — that is the numerical version of "take $$N$$ large after averaging."
+
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig8-finite-n-convergence.png" alt="Relative L2 error vs N for finite-N response" width="400"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2b. Relative error between finite-$$N$$ $$R_z(\tau)$$ and the large-$$N$$ prediction vs. $$N$$. The numerical response concentrates around the DMFT answer as dimension grows.</figcaption>
+  <figcaption>Figure 2b. Relative L2 error between finite-N R<sub>z</sub>(τ) and the large-N semicircle prediction, vs. N. Error falls as dimension grows.</figcaption>
 </figure>
 
-<figure style="text-align: center;">
+**What Figure 3 is showing.** The response is an integral over eigenvalues. Figure 3 plots the integrand W(λ, τ) = ρ(λ) e<sup>−(λ+z)τ</sup> as a heatmap: horizontal axis is λ, vertical axis is τ, color is how much weight that eigenvalue carries at that lag. At small τ the whole semicircle contributes (bright band across all λ). As τ grows, the exponential kills everything except modes near λ = −2, so the bright region creeps to the left edge. The yellow curve on the right is R<sub>z</sub>(τ) obtained by integrating W over λ — the same object as Figure 2, but seen as a sum over modes.
+
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig3-mode-decay.png" alt="Heatmap of spectral mode contributions to response" width="640"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 3. Integrand $$W(\lambda,\tau) = \rho(\lambda) e^{-(\lambda+z)\tau}$$. Late-time response is built from modes near $$\lambda = -2$$ (cyan). Marginal curve: $$R_z(\tau)$$.</figcaption>
+  <figcaption>Figure 3. Integrand W(λ, τ) = ρ(λ) e<sup>−(λ+z)τ</sup>. Bright regions mark which eigenvalues matter at each lag. Marginal curve (right): R<sub>z</sub>(τ) from integrating over λ.</figcaption>
 </figure>
 
-Figure 3 decomposes the integral: at small $$\tau$$ many eigenvalues contribute; as $$\tau$$ grows, weight concentrates at the spectral edge. The animation shows the same accumulation.
+The animation below is the same decomposition, one lag at a time. The orange curve is W(λ, τ) at the current τ; the gray semicircle behind it is ρ(λ) for reference. Watch the orange curve narrow toward λ = −2 as τ increases, while the right panel traces out R<sub>z</sub>(τ).
 
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/path-integral/gif-spectral-modes-response.gif" alt="Animation of spectral modes composing the response over time" width="640"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Animation: as $$\tau$$ increases, fast modes die off and edge modes carry what remains.</figcaption>
+<figure class="blog-figure">
+  <img src="/assets/img/blog/path-integral/gif-spectral-modes-response.gif" alt="Animation of spectral mode weights narrowing to the edge" width="640"/>
+  <figcaption>Animation. Left: integrand W(λ, τ) at the current lag (orange) vs. the static semicircle ρ(λ) (purple). Right: R<sub>z</sub>(τ) accumulated so far. Text banner states the current τ.</figcaption>
 </figure>
 
 ---
@@ -199,16 +205,18 @@ Figure 3 decomposes the integral: at small $$\tau$$ many eigenvalues contribute;
 
 $$C(t,t')$$ and $$R(t,t')$$ are functions of two times, not scalars. The system has a history.
 
-For symmetric GOE dynamics, $$C(t,t')$$ depends on $$s = t + t'$$ in the large-$$N$$ limit. Figure 4 zooms to $$t, t' \in [0,8]$$ where the structure is visible, and plots the one-dimensional slice $$C(s)/C(0)$$ vs. summed time.
+For symmetric GOE dynamics, $$C(t,t')$$ depends on $$s = t + t'$$ in the large-$$N$$ limit. That means correlation is large only when *both* times are early (small $$s$$), not when one time is early and the other late. Figure 4 zooms to $$t, t' \in [0,8]$$ where the structure is visible. The left panel is the full two-time surface; the right panel collapses it to a one-dimensional slice along $$s = t + t'$$.
 
-<figure style="text-align: center;">
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig4-correlation-heatmap.png" alt="Two-time correlation heatmap and decay slice" width="640"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 4. Left: normalized $$C(t,t')$$ on a zoomed window. Right: decay along $$s = t + t'$$. Correlation is large only when both times are early; it fades as $$s$$ grows.</figcaption>
+  <figcaption>Figure 4. Left: normalized C(t, t′) on a zoomed window. Bright corner = both times small. Right: C(s)/C(0) vs. summed time s = t + t′.</figcaption>
 </figure>
 
-<figure style="text-align: center;">
+Figure 5 is the response surface R(t, t′). Unlike correlation, response is causal: a perturbation at t′ can only affect later times t ≥ t′. That is why the triangle below the diagonal is empty. The bright band along the diagonal is the immediate echo of a poke; it fades as you move away from the diagonal.
+
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig5-response-heatmap.png" alt="Causal two-time response heatmap R(t,t prime)" width="440"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 5. $$R(t,t')$$ on $$t,t' \in [0,10]$$. Zero below the diagonal (causality): a perturbation at $$t'$$ cannot affect earlier times $$t$$.</figcaption>
+  <figcaption>Figure 5. R(t, t′) on t, t′ ∈ [0, 10]. Empty lower triangle = causality (no influence backward in time).</figcaption>
 </figure>
 
 ---
@@ -223,11 +231,11 @@ M_{\mathrm{sym}} = \frac{A + A^\top}{\sqrt{2N}},
 M_{\mathrm{anti}} = \frac{A - A^\top}{\sqrt{2N}}.
 $$
 
-Real eigenvalues give exponential relaxation. Purely imaginary eigenvalues give oscillation.
+Real eigenvalues give exponential relaxation. Purely imaginary eigenvalues give oscillation. Figure 6 contrasts the two: symmetric M has real spectrum and a decaying response (top row); antisymmetric M has eigenvalues on the imaginary axis and an oscillatory response (bottom row). Same random draw A, different symmetrization — different memory of perturbations.
 
-<figure style="text-align: center;">
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig6-sym-antisym.png" alt="Symmetric vs antisymmetric eigenvalues and response curves" width="640"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 6. Top: symmetric spectrum and decaying response. Bottom: antisymmetric spectrum on the imaginary axis and oscillatory response.</figcaption>
+  <figcaption>Figure 6. Top: symmetric M — real eigenvalues, decaying R<sub>z</sub>(τ). Bottom: antisymmetric M — imaginary eigenvalues, oscillatory response.</figcaption>
 </figure>
 
 ---
@@ -266,11 +274,11 @@ The residual $$h(t) = \beta^\star - w(t)$$ evolves under the same random-matrix-
 
 In the GOE example, $$M$$ was an abstract interaction matrix. In regression, $$M$$ is the data covariance (Wishart). Its eigenvalues are effective learning rates for different error modes. Large eigenvalues decay quickly; small eigenvalues are slow directions. When $$\alpha = P/N$$ crosses the interpolation threshold, the spectrum develops a bulk edge and bias–variance behavior becomes delicate.
 
-When we plot loss versus time, we are already doing statistical physics: throwing away microscopic coordinates and watching an order parameter. A training curve is not just a log file. It is a projection of high-dimensional dynamics onto a scalar.
+When we plot loss versus time, we are already doing statistical physics: throwing away microscopic coordinates and watching an order parameter. A training curve is not just a log file. It is a projection of high-dimensional dynamics onto a scalar. Figure 7 is a concrete instance: gradient descent on random linear regression at several sample-complexity ratios α = P/N. Solid curves are train loss; dashed curves are test loss. Color encodes α. The same DMFT logic applies — the empirical covariance Ψ<sup>⊤</sup>Ψ / P plays the role of M — but here the spectrum is Wishart rather than GOE.
 
-<figure style="text-align: center;">
+<figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig7-linear-regression.png" alt="Train and test loss curves for random linear regression at several alpha=P/N" width="520"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 7. Random linear regression with label noise $$\sigma = 0.1$$. Solid: train loss. Dashed: test loss. Color: $$\alpha = P/N$$. Train and test follow different macroscopic curves as $$\alpha$$ changes; near the interpolation threshold the covariance spectrum controls which modes decay slowly.</figcaption>
+  <figcaption>Figure 7. Random linear regression with label noise σ = 0.1. Solid: train loss. Dashed: test loss. Color: α = P/N.</figcaption>
 </figure>
 
 The paper goes further in random feature models near interpolation, where test loss can be non-monotonic and the spectrum alone is not enough. That is where the full two-time $$C(t,t')$$ matters. I have not reproduced those curves here; this post stays on the GOE example where we have the answer key.
@@ -301,4 +309,4 @@ For high-dimensional learning systems, those functions are often correlations, r
 
 * Mezard, M., & Montanari, A. (2009). *Information, Physics, and Computation*. Oxford University Press.
 
-*Figures: `tools/path-integral-dmft/generate_figures.py`. PNG exports use transparent backgrounds.*
+*Figures: `tools/path-integral-dmft/generate_figures.py`. PNG exports use white figure panels so axes stay readable in both light and dark site themes.*

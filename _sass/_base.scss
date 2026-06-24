@@ -1098,6 +1098,37 @@ swiper-container {
   --swiper-pagination-bullet-inactive-color: var(--global-text-color);
 }
 
+.post-content figure.blog-figure,
+.post figure.blog-figure {
+  margin: 1.6rem auto;
+  text-align: center;
+  max-width: 100%;
+
+  img {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 10px;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  figcaption {
+    font-size: 0.92em;
+    color: var(--global-text-color-light);
+    margin-top: 0.65rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+}
+
+html[data-theme="dark"] {
+  .post-content figure.blog-figure img,
+  .post figure.blog-figure img {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+}
+
 .ps-root {
   .ps-algorithm {
     margin: 0.8em 0;
@@ -1109,3 +1140,4 @@ swiper-container {
     border-bottom: 2px solid var(--global-text-color);
   }
 }
+

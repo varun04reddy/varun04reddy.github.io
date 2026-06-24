@@ -55,18 +55,36 @@ def response_theory(tau: np.ndarray, z: float = Z_SHIFT) -> np.ndarray:
     return out
 
 
-def _prep_transparent(fig: plt.Figure) -> None:
-    fig.patch.set_alpha(0.0)
+BLOG_BG = "#ffffff"
+BLOG_FG = "#1e293b"
+BLOG_MUTED = "#64748b"
+
+
+def _prep_blog_style(fig: plt.Figure) -> None:
+    """Solid light panel so axes stay readable on dark site theme."""
+    fig.patch.set_facecolor(BLOG_BG)
     for ax in fig.get_axes():
-        ax.patch.set_alpha(0.0)
+        if not ax.get_visible():
+            continue
+        ax.set_facecolor(BLOG_BG)
+        ax.tick_params(colors=BLOG_FG)
+        ax.xaxis.label.set_color(BLOG_FG)
+        ax.yaxis.label.set_color(BLOG_FG)
+        ax.title.set_color(BLOG_FG)
+        for spine in ax.spines.values():
+            spine.set_color(BLOG_MUTED)
+        leg = ax.get_legend()
+        if leg is not None:
+            for text in leg.get_texts():
+                text.set_color(BLOG_FG)
 
 
 def _save_blog(fig: plt.Figure, stem: Path, web_name: str) -> None:
-    """PNG with transparent background for light/dark blog themes."""
-    _prep_transparent(fig)
+    """PNG with white background for readable light/dark blog themes."""
+    _prep_blog_style(fig)
     stem.parent.mkdir(parents=True, exist_ok=True)
     png = stem.with_suffix(".png")
-    fig.savefig(png, dpi=DPI, bbox_inches="tight", pad_inches=0.04, transparent=True)
+    fig.savefig(png, dpi=DPI, bbox_inches="tight", pad_inches=0.06, facecolor=BLOG_BG)
     _web(png, ASSETS / web_name)
     plt.close(fig)
 
@@ -92,22 +110,58 @@ def fig1_semicircle(gen: np.random.Generator) -> None:
 
 
 def fig2_response_decay(gen: np.random.Generator) -> None:
+    """Two panels: full decay on linear τ, then log-log tail vs τ^{-3/2}."""
     n = 4000
     _, eig = goe_matrix(n, gen)
-    tau = np.logspace(-1, 2, 300)
-    r_num = response_from_eigs(eig, tau, Z_SHIFT)
-    r_th = response_theory(tau, Z_SHIFT)
-    ref = tau ** (-1.5)
-    ref *= r_th[np.argmin(np.abs(tau - 10.0))] / ref[np.argmin(np.abs(tau - 10.0))]
+    tau_lin = np.linspace(0.05, 40.0, 400)
+    tau_log = np.logspace(-0.3, 2.2, 300)
+    r_lin_num = response_from_eigs(eig, tau_lin, Z_SHIFT)
+    r_lin_th = response_theory(tau_lin, Z_SHIFT)
+    r_log_num = response_from_eigs(eig, tau_log, Z_SHIFT)
+    r_log_th = response_theory(tau_log, Z_SHIFT)
+    ref = tau_log ** (-1.5)
+    ref *= r_log_th[np.argmin(np.abs(tau_log - 12.0))] / ref[np.argmin(np.abs(tau_log - 12.0))]
 
-    fig, ax = plt.subplots(figsize=(5.2, 3.8))
-    ax.loglog(tau, r_num, color="#f97316", lw=2.0, label=rf"finite $N={n}$")
-    ax.loglog(tau, r_th, color="#1e293b", ls="--", lw=1.8, label="theory")
-    ax.loglog(tau, ref, color="#94a3b8", ls=":", lw=1.5, label=r"$\tau^{-3/2}$")
-    ax.set_xlabel(r"time lag $\tau$")
-    ax.set_ylabel(r"$R_z(\tau)$")
-    ax.legend(frameon=False, fontsize=7, loc="upper right")
-    clean_axis(ax)
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.5))
+    ax0, ax1 = axes
+
+    ax0.semilogy(tau_lin, r_lin_num, color="#f97316", lw=2.0, label=rf"finite $N={n}$")
+    ax0.semilogy(tau_lin, r_lin_th, color="#1e293b", ls="--", lw=1.8, label="semicircle integral")
+    ax0.set_xlabel(r"time lag $\tau$")
+    ax0.set_ylabel(r"shifted response $R_z(\tau)$")
+    ax0.set_title("memory of a unit perturbation", fontsize=8)
+    ax0.text(
+        0.04,
+        0.55,
+        "early: all eigenmodes\ncontribute",
+        transform=ax0.transAxes,
+        fontsize=6.5,
+        color=BLOG_MUTED,
+        va="top",
+    )
+    ax0.text(
+        0.55,
+        0.12,
+        "late: only edge modes\nat $\lambda=-2$ remain",
+        transform=ax0.transAxes,
+        fontsize=6.5,
+        color=BLOG_MUTED,
+        va="bottom",
+    )
+    ax0.legend(frameon=False, fontsize=6.5, loc="upper right")
+    add_panel_label(ax0, "a")
+    clean_axis(ax0)
+
+    ax1.loglog(tau_log, r_log_num, color="#f97316", lw=2.0, label=rf"finite $N={n}$")
+    ax1.loglog(tau_log, r_log_th, color="#1e293b", ls="--", lw=1.8, label="theory")
+    ax1.loglog(tau_log, ref, color="#94a3b8", ls=":", lw=1.5, label=r"$\tau^{-3/2}$ tail")
+    ax1.set_xlabel(r"time lag $\tau$")
+    ax1.set_ylabel(r"$R_z(\tau)$")
+    ax1.set_title(r"critical tail ($z=2$ puts slowest mode at $\lambda+z=0$)", fontsize=8)
+    ax1.legend(frameon=False, fontsize=6.5, loc="upper right")
+    add_panel_label(ax1, "b")
+    clean_axis(ax1)
+
     fig.tight_layout()
     _save_blog(fig, OUT / "fig2_response_decay", "fig2-response-decay.png")
 
@@ -131,8 +185,6 @@ def fig3_mode_decay() -> None:
         cmap="magma",
         norm=mcolors.LogNorm(vmin=max(w[w > 0].min(), 1e-8), vmax=w.max()),
     )
-    ax.axvline(-2.0, color="#22d3ee", ls="--", lw=1.0, alpha=0.9)
-    ax.text(-1.92, 47, "slow edge", color="#22d3ee", fontsize=7, ha="left", va="top")
     ax.set_xlabel(r"eigenvalue $\lambda$")
     ax.set_ylabel(r"time lag $\tau$")
     ax.set_title(r"$W(\lambda,\tau)=\rho(\lambda)\,e^{-(\lambda+z)\tau}$", fontsize=9)
@@ -329,62 +381,70 @@ def fig8_finite_n_convergence(gen: np.random.Generator) -> None:
 
 
 def gif_spectral_modes() -> None:
+    """Animated 1D slices: who contributes to R_z(τ) at each lag."""
     z = Z_SHIFT
     lam = np.linspace(-2.0, 2.0, 400)
     rho = wigner_density(lam)
-    tau_vals = np.linspace(0.5, 40.0, 60)
+    tau_vals = np.linspace(0.3, 35.0, 55)
     r_full = response_theory(tau_vals, z)
+    w_max = (rho * np.exp(-(lam + z) * tau_vals[0])).max()
 
-    fig = plt.figure(figsize=(7.2, 3.2), facecolor="none")
-    gs = GridSpec(1, 3, width_ratios=[1, 1.4, 1], wspace=0.25)
-    ax_rho = fig.add_subplot(gs[0, 0])
-    ax_w = fig.add_subplot(gs[0, 1])
-    ax_rt = fig.add_subplot(gs[0, 2])
-    for ax in (ax_rho, ax_w, ax_rt):
-        ax.set_facecolor("none")
-        ax.patch.set_alpha(0.0)
+    fig = plt.figure(figsize=(7.0, 3.6), facecolor=BLOG_BG)
+    gs = GridSpec(2, 2, height_ratios=[1, 0.12], width_ratios=[1.15, 0.85], hspace=0.35, wspace=0.28)
+    ax_w = fig.add_subplot(gs[0, 0])
+    ax_rt = fig.add_subplot(gs[0, 1])
+    ax_banner = fig.add_subplot(gs[1, :])
+    ax_banner.axis("off")
 
-    ax_rho.fill_between(lam, rho, color="#6366f1", alpha=0.85)
-    ax_rho.set_xlim(-2.2, 2.2)
-    ax_rho.set_ylim(0, 1.0 / np.pi * 1.05)
-    ax_rho.set_xlabel(r"$\rho(\lambda)$", fontsize=8)
-    ax_rho.set_title("spectrum", fontsize=9)
+    ax_w.fill_between(lam, np.zeros_like(lam), rho, color="#6366f1", alpha=0.25, label=r"$\rho(\lambda)$")
+    ax_w.plot(lam, rho, color="#6366f1", lw=1.2, alpha=0.5)
+    (active,) = ax_w.plot(lam, rho, color="#f97316", lw=2.2, label=r"$W(\lambda,\tau)$")
+    ax_w.axvline(-2.0, color="#94a3b8", ls="--", lw=1.0, alpha=0.8)
+    ax_w.text(-1.95, w_max * 0.92, r"$\lambda=-2$", fontsize=7, color=BLOG_MUTED, ha="left")
+    ax_w.set_xlim(-2.2, 2.2)
+    ax_w.set_ylim(0, w_max * 1.08)
+    ax_w.set_xlabel(r"eigenvalue $\lambda$")
+    ax_w.set_ylabel("integrand weight")
+    ax_w.set_title("which modes build the response at this lag?", fontsize=8)
+    ax_w.legend(frameon=False, fontsize=6.5, loc="upper right")
 
-    w0 = rho[None, :] * np.exp(-(lam[None, :] + z) * tau_vals[0])
-    im = ax_w.imshow(
-        w0,
-        aspect="auto",
-        origin="lower",
-        extent=[lam[0], lam[-1], 0, tau_vals[-1]],
-        cmap="magma",
-        vmin=0,
-        vmax=(rho[None, :] * np.exp(-(lam[None, :] + z) * 0.01)).max(),
+    (line,) = ax_rt.plot([], [], color="#f97316", lw=2.2)
+    ax_rt.semilogy(tau_vals, r_full, color="#cbd5e1", lw=1.0, zorder=0)
+    ax_rt.set_xlim(tau_vals[0], tau_vals[-1])
+    ax_rt.set_ylim(r_full.min() * 0.4, r_full.max() * 1.6)
+    ax_rt.set_xlabel(r"time lag $\tau$")
+    ax_rt.set_ylabel(r"$R_z(\tau)$")
+    ax_rt.set_title("integrated response so far", fontsize=8)
+
+    banner = ax_banner.text(
+        0.5,
+        0.5,
+        "",
+        ha="center",
+        va="center",
+        fontsize=9,
+        color=BLOG_FG,
+        transform=ax_banner.transAxes,
     )
-    ax_w.set_xlabel(r"$\lambda$", fontsize=8)
-    ax_w.set_ylabel(r"$\tau$", fontsize=8)
-    ax_w.set_title("mode weights", fontsize=9)
 
-    (line,) = ax_rt.plot([], [], color="#f97316", lw=2)
-    ax_rt.set_xscale("log")
-    ax_rt.set_yscale("log")
-    ax_rt.set_xlim(tau_vals[1], tau_vals[-1])
-    ax_rt.set_ylim(r_full.min() * 0.5, r_full.max() * 2)
-    ax_rt.set_xlabel(r"$\tau$", fontsize=8)
-    ax_rt.set_ylabel(r"$R_z(\tau)$", fontsize=8)
-    ax_rt.set_title("response", fontsize=9)
+    _prep_blog_style(fig)
 
     def update(frame: int):
         tau = tau_vals[frame]
-        data = rho[None, :] * np.exp(-(lam[None, :] + z) * np.array([tau]))
-        im.set_data(data)
-        im.set_extent([lam[0], lam[-1], 0, tau])
+        w = rho * np.exp(-(lam + z) * tau)
+        active.set_ydata(w)
+        ax_w.set_ylim(0, max(w.max(), w_max * 0.05) * 1.12)
         line.set_data(tau_vals[: frame + 1], r_full[: frame + 1])
-        return im, line
+        banner.set_text(
+            rf"At lag $\tau={tau:.1f}$: fast modes ($\lambda\gg -2$) have decayed; "
+            rf"weight concentrates near $\lambda=-2$"
+        )
+        return active, line, banner
 
-    ani = animation.FuncAnimation(fig, update, frames=len(tau_vals), interval=80, blit=False)
+    ani = animation.FuncAnimation(fig, update, frames=len(tau_vals), interval=90, blit=False)
     gif_path = ASSETS / "gif-spectral-modes-response.gif"
     gif_path.parent.mkdir(parents=True, exist_ok=True)
-    ani.save(gif_path, writer=animation.PillowWriter(fps=12))
+    ani.save(gif_path, writer=animation.PillowWriter(fps=10), savefig_kwargs={"facecolor": BLOG_BG})
     plt.close(fig)
     print(f"GIF saved to {gif_path}")
 
@@ -394,8 +454,13 @@ def _web(src: Path, dst: Path) -> None:
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     img = Image.open(src)
-    if img.mode != "RGBA":
-        img = img.convert("RGBA")
+    if img.mode == "RGBA":
+        # Flatten onto white so dark-mode page background does not bleed through.
+        bg = Image.new("RGB", img.size, (255, 255, 255))
+        bg.paste(img, mask=img.split()[3])
+        img = bg
+    elif img.mode != "RGB":
+        img = img.convert("RGB")
     w, h = img.size
     if w > 1200:
         img = img.resize((1200, int(h * 1200 / w)), Image.Resampling.LANCZOS)
