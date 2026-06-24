@@ -319,11 +319,11 @@ $$
 R_z(\tau)\sim \tau^{-3/2}.
 $$
 
-**What Figure 2 is measuring.** Imagine injecting a unit perturbation into the system and asking how much of it remains after a lag $\tau$. That scalar is $R_z(\tau)$. Because the dynamics are linear, it equals a trace over eigenmodes: each mode $\lambda$ contributes $\rho(\lambda)e^{-(\lambda+z)\tau}$. Panel (a) plots the full curve on a linear time axis so you can see the decay directly. Panel (b) zooms into the late-time tail on log-log axes and overlays a $\tau^{-3/2}$ reference. The orange curve is one finite-$N$ draw; the dashed curve is the semicircle integral, which is the large-$N$ answer. They should sit on top of each other, and the tail should parallel the dotted line.
+**What Figure 2 is measuring.** Imagine injecting a unit perturbation into the system and asking how much of it remains after a lag $\tau$. That scalar is $R_z(\tau)$. Because the dynamics are linear, it equals a trace over eigenmodes: each mode $\lambda$ contributes $\rho(\lambda)e^{-(\lambda+z)\tau}$. Panel (a) plots the full curve on a linear time axis; panel (b) zooms into the late-time tail on log-log axes with a $\tau^{-3/2}$ reference. The orange curve is one finite-$N$ draw; the dashed curve is the semicircle integral.
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig2-response-decay.png" alt="Two-panel response decay: linear-time overview and log-log tail" width="640"/>
-  <figcaption>Figure 2. Shifted response Rz(tau) with z = 2. Left: semilog plot on linear tau showing how memory of a perturbation decays. Right: log-log tail versus theory; the dotted line is a tau^(-3/2) reference slope. Orange: one GOE sample at N = 4000. Dashed: semicircle integral.</figcaption>
+  <figcaption>Figure 2. Shifted response $R_z(\tau)$ with $z=2$.</figcaption>
 </figure>
 
 I also checked finite-$N$ convergence: for each matrix size $N$, the relative L2 error between $R_z(\tau)$ and the semicircle integral falls as $N$ grows from hundreds to thousands. Figure 2 already shows agreement at $N=4000$, so I skip a separate plot.
