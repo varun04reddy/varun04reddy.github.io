@@ -27,12 +27,12 @@ I will use the GOE warmup as a calibration case. The expected answer is the Wign
 
 ---
 
-## Order parameters instead of coordinates
+## Order parameters
 
 Training produces a trajectory:
 
 $$
-\theta_0 \rightarrow \theta_1 \rightarrow \cdots \rightarrow \theta_T.
+\theta_0,\ \theta_1,\ \ldots,\ \theta_T.
 $$
 
 One can track each component of $$\theta_t$$, but the more useful question is which collective observables carry information: correlations between times, response to perturbations, spectra of covariance matrices, and the loss curve itself.
@@ -55,7 +55,7 @@ The system has memory, and here memory is a two-time object.
 
 ---
 
-## Why path integrals at all?
+## Background on path integrals
 
 Feynman introduced the path integral as a different formulation of quantum mechanics. The Schrödinger picture evolves wavefunctions by a differential equation. The path-integral picture asks for the amplitude to go from one state to another by summing over all possible histories connecting them. For a particle trajectory $$x(t)$$, the schematic object is
 
@@ -126,18 +126,18 @@ At fixed $$N$$, this is just a linear ODE: diagonalize $$M$$ and integrate. For 
 
 The formalism is built for settings where diagonalization stops being the right language: random features, SGD noise, non-Hermitian Jacobians, and matrices that evolve during training. The GOE case is the controlled place to see the machinery and verify it against the semicircle law.
 
-The important phenomenon is self-averaging. As $$N\to\infty$$, many details of the particular matrix draw disappear, while observables like the spectrum and response converge to deterministic limits.
+The important phenomenon is self-averaging. In the large-$$N$$ limit, many details of the particular matrix draw disappear, while observables like the spectrum and response converge to deterministic limits.
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig1-goe-semicircle.png" alt="GOE eigenvalue histogram with Wigner semicircle overlay" width="520"/>
-  <figcaption>Figure 1. Histogram of eigenvalues from one random symmetric NxN matrix against the Wigner semicircle prediction. Individual matrix entries are random, but the bulk eigenvalue density follows a fixed law. This is the static sanity check before looking at time.</figcaption>
+  <figcaption>Figure 1. Histogram of eigenvalues from one random symmetric N×N matrix against the Wigner semicircle prediction. Individual matrix entries are random, but the bulk eigenvalue density follows a fixed law. This is the static sanity check before looking at time.</figcaption>
 </figure>
 
 Before time enters the story, disorder in the entries already produces a deterministic eigenvalue density. Figure 1 is the static hint that averaging works: draw a fresh GOE matrix, histogram its eigenvalues, and the semicircle shows up. If the path-integral / DMFT machinery is doing its job, every time-dependent quantity computed later should be built from this same $$\rho(\lambda)$$.
 
 ---
 
-## What the path integral compresses
+## Generating functional and saddle point
 
 The paper writes the generating functional as
 
@@ -178,16 +178,14 @@ $$
 u(t) \sim \mathrm{GP}(0, C(t,t')).
 $$
 
-The original system had $$N$$ coupled coordinates. In the $$N\to\infty$$ limit, a typical coordinate behaves like a single stochastic process driven by colored noise and delayed self-feedback.
+The original system had $$N$$ coupled coordinates. In the large-$$N$$ limit, a typical coordinate behaves like a single stochastic process driven by colored noise and delayed self-feedback.
 
 This has the same structure as the path integral, but now in a disordered dynamical system rather than quantum mechanics. Start with many possible microscopic histories, impose the dynamics, average over disorder, and let the large-$$N$$ action tell us which macroscopic history survives.
 
 In the GOE case, the saddle closes further. The response satisfies a self-consistency equation that is much smaller than the original system:
 
 $$
-\partial_t R(t,t')
-= \delta(t-t')
-+ \int_0^t dt''\, R(t,t'')\, R(t'',t').
+\partial_t R(t,t') = \delta(t-t') + \int_0^t dt''\, R(t,t'')\, R(t'',t').
 $$
 With time-translation invariance, Fourier transforming gives
 
@@ -205,23 +203,11 @@ i\omega+\sqrt{(i\omega)^2-4}
 \right],
 $$
 
-whose branch cut on $$[-2,2]$$ recovers the semicircle. That is the chain in the GOE warmup:
-
-$$
-\text{path integral}
-\rightarrow
-\text{order parameters}
-\rightarrow
-\text{closed response equation}
-\rightarrow
-\text{semicircle}.
-$$
-
-The figures below check the last step directly.
+whose branch cut on $$[-2,2]$$ recovers the semicircle. This is the basic consistency check for the GOE warmup: the response equation gives back the random-matrix spectrum. The figures below check that relation directly.
 
 ---
 
-## Response is the spectrum, read in time
+## Response function
 
 For the linear system, with lag $$\tau=t-t’$$,
 
@@ -311,19 +297,19 @@ as a heatmap. The horizontal axis is $$\lambda$$, the vertical axis is $$\tau$$,
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig3-mode-decay.png" alt="Heatmap of spectral mode contributions to response" width="640"/>
-  <figcaption>Figure 3. Integrand W(lambda, tau) = rho(lambda) exp(-(lambda + z) tau). Bright regions mark which eigenvalues matter at each lag. Marginal curve: Rz(tau) from integrating over lambda.</figcaption>
+  <figcaption>Figure 3. Integrand W(λ, τ) = ρ(λ) exp[-(λ + z)τ]. Bright regions mark which eigenvalues matter at each lag. Marginal curve: R<sub>z</sub>(τ) from integrating over λ.</figcaption>
 </figure>
 
 The animation below is the same decomposition, one lag at a time. The orange curve is $$W(\lambda,\tau)$$ at the current $$\tau$$; the gray semicircle behind it is $$\rho(\lambda)$$ for reference. Watch the orange curve narrow toward $$\lambda=-2$$ as $$\tau$$ increases, while the right panel traces out $$R_z(\tau)$$.
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/gif-spectral-modes-response.gif" alt="Animation of spectral mode weights narrowing to the edge" width="640"/>
-  <figcaption>Animation. Left: integrand W(lambda, tau) at the current lag versus the static semicircle rho(lambda). Right: Rz(tau) accumulated so far. Text banner states the current tau.</figcaption>
+  <figcaption>Animated spectral response. Left: W(λ, τ) at the current lag versus the static semicircle ρ(λ). Right: accumulated R<sub>z</sub>(τ). The banner gives the current τ.</figcaption>
 </figure>
 
 ---
 
-## Two-time memory surfaces
+## Correlation and response surfaces
 
 $$C(t,t’)$$ and $$R(t,t’)$$ are functions of two times. History is encoded in relationships between pairs of times, not in a single clock reading.
 
@@ -352,7 +338,7 @@ So the correlation depends on the summed time $$t+t’$$. This identity is speci
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig4-correlation-heatmap.png" alt="Two-time correlation heatmap and decay slice" width="640"/>
-  <figcaption>Figure 4. Left: normalized C(t, t') on a zoomed window. Bright corner means both times are small. Right: C(s) / C(0) versus summed time s = t + t'.</figcaption>
+  <figcaption>Figure 4. Left: normalized C(t, t′) on a zoomed window. Bright corner means both times are small. Right: C(s) / C(0) versus summed time s = t + t′.</figcaption>
 </figure>
 
 Response has a different geometry because it is causal:
@@ -367,7 +353,7 @@ The future cannot affect the past.
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig5-response-heatmap.png" alt="Causal two-time response heatmap R(t,t prime)" width="440"/>
-  <figcaption>Figure 5. R(t, t') on t, t' in [0, 10]. Empty lower triangle means causality, with no influence backward in time.</figcaption>
+  <figcaption>Figure 5. R(t, t′) on t, t′ in [0, 10]. Empty lower triangle means causality, with no influence backward in time.</figcaption>
 </figure>
 
 Two systems can share the same loss at a given step yet carry different memory. $$C$$ tells us how much of the past remains in the state; $$R$$ tells us how a perturbation propagates into the future.
@@ -376,7 +362,7 @@ This is one of the places where the path-integral viewpoint earns its keep. It p
 
 ---
 
-## Real spectra relax; imaginary spectra oscillate
+## Symmetric and antisymmetric dynamics
 
 The GOE example is symmetric, so its eigenvectors form an orthogonal basis of relaxation modes. If we change the symmetry class, the same response formalism produces a different temporal texture.
 
@@ -394,12 +380,12 @@ Real eigenvalues give exponential relaxation. Purely imaginary eigenvalues give 
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/fig6-sym-antisym.png" alt="Symmetric vs antisymmetric eigenvalues and response curves" width="640"/>
-  <figcaption>Figure 6. Top: symmetric M with real eigenvalues and decaying Rz(tau). Bottom: antisymmetric M with imaginary eigenvalues and oscillatory response.</figcaption>
+  <figcaption>Figure 6. Top: symmetric M with real eigenvalues and decaying R<sub>z</sub>(τ). Bottom: antisymmetric M with imaginary eigenvalues and oscillatory response.</figcaption>
 </figure>
 
 ---
 
-## From GOE to learning curves
+## Connection to learning curves
 
 Bordelon and Pehlevan apply the same template to linear regression, random features, kernel methods, and deep linear networks. The bridge I understand best is random linear regression.
 
@@ -464,7 +450,7 @@ The example is still useful because it teaches the basic move: replace microscop
 
 ---
 
-## What I take from it
+## Summary
 
 The full derivation is formal, but the conceptual target is concrete. Start with $$N$$ coupled variables. Average over disorder. Take $$N$$ large. Identify the self-consistent memory functions that survive. In the GOE warmup, this procedure recovers a spectral law we already trust. In learning problems, the same language gives a way to treat train and test curves as macroscopic observables of high-dimensional dynamics.
 
