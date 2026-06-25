@@ -1,13 +1,9 @@
-
-
-
-
-⸻
-
-title: “Path Integrals for Learning Dynamics”
+---
+title: "Path Integrals for Learning Dynamics"
 date: 2026-06-24
 layout: post
 categories: [technical]
+---
 
 During deep learning experimentation, I often seek the comfort of visibility. I log training steps, plot loss curves, inspect gradients, track spectra, and save checkpoints. These tools make training feel observable. But the object being studied is still enormous: millions, billions, and sometimes trillions of coupled parameters evolving under data, architecture, initialization, and optimization.
 
