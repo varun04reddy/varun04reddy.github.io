@@ -5,17 +5,15 @@ layout: post
 categories: [technical]
 ---
 
-During deep learning experimentation, I often seek the comfort of visibility. I log training steps, plot loss curves, inspect gradients, track spectra, and save checkpoints. These tools make training feel observable. But the object being studied is still enormous: millions, billions, and sometimes trillions of coupled parameters evolving under data, architecture, initialization, and optimization.
+Modern training runs are easy to instrument and hard to understand. We can log losses, gradient norms, spectra, activations, checkpoints, and alignment metrics at every step. The logs are detailed, but the object producing them is still a high-dimensional dynamical system: millions to trillions of coupled parameters evolving under data, architecture, initialization, and optimization.
 
-At that scale, knowing every weight rarely explains the system. The more useful goal is to find a smaller set of quantities that captures the behavior I care about: how fast errors decay, which directions are slow, how perturbations propagate, when randomness averages out, and why a learning curve has the shape it does.
+The question is not whether we can observe the system. The question is which observables are worth keeping. A useful theory should tell us which summaries survive averaging, which perturbations persist, which directions are slow, and why a learning curve has the shape it does.
 
-This is where physics feels unusually clarifying. Statistical mechanics was built around the idea that large systems should be understood through collective variables. Instead of following every molecule, one studies pressure, magnetization, correlations, and response. The microscopic details still matter, but the explanation often lives at a macroscopic scale.
+This is exactly the kind of compression statistical physics is good at. Large physical systems are not explained by listing every coordinate. They are explained through collective variables: correlations, responses, spectra, order parameters. The microscopic degrees of freedom still exist, but the explanation lives in the lower-dimensional objects that remain stable at scale.
 
-Path integrals push this idea into an even cleaner form. What I like about them is the shift in perspective: do not commit too early to one trajectory. Write down the space of possible histories, impose the rules those histories must satisfy, and ask what survives after summing, averaging, or taking a large-system limit.
+Path integrals are one formal way to do this compression. Instead of choosing a single trajectory first, they write down the space of possible histories, impose the dynamics, average over randomness, and ask which macroscopic histories dominate. In dynamical mean-field theory, this turns high-dimensional random dynamics into self-consistent equations for collective observables.
 
-In quantum mechanics, this is the famous sum over histories weighted by the action. In statistical field theory and dynamical mean-field theory, the same grammar becomes a way to turn high-dimensional dynamics into equations for collective observables. The important move is to start from histories and derive the macroscopic objects that remain after averaging.
-
-This post is about one clean example where that viewpoint becomes concrete. In Bordelon and Pehlevan’s work on disordered dynamics in high dimensions, a path-integral / dynamical mean-field theory calculation compresses a random linear dynamical system into two memory functions:
+This post works through the Gaussian orthogonal ensemble (GOE) warmup from Bordelon and Pehlevan’s work on disordered dynamics in high dimensions. The example is deliberately simple: a random linear system where the large-$$N$$ answer is known. That makes it a useful test case. The path-integral / DMFT calculation reduces the system to two memory functions,
 
 $$
 C(t,t’)=\frac{1}{N}h(t)\cdot h(t’),
@@ -23,23 +21,9 @@ C(t,t’)=\frac{1}{N}h(t)\cdot h(t’),
 R(t,t’)=\frac{1}{N}\operatorname{Tr}\frac{\delta h(t)}{\delta j(t’)^\top}.
 $$
 
-The first measures temporal similarity across pairs of times. The second measures causal sensitivity across pairs of times. Together, they describe what the system remembers.
+$$C$$ measures temporal similarity. $$R$$ measures causal sensitivity. Together they encode how the system remembers its past and responds to perturbations.
 
-I will use one solvable setting to show how the path-integral viewpoint turns high-dimensional random dynamics into macroscopic memory functions, without pretending that neural networks are quantum systems or that a linear GOE model explains modern deep nets.
-
-The arc is:
-
-$$
-\text{random matrix spectrum}
-\rightarrow
-\text{response curve}
-\rightarrow
-\text{two-time memory surfaces}
-\rightarrow
-\text{learning curves}.
-$$
-
-The GOE warmup is a calibration case. The expected answer is the Wigner semicircle. The interesting part is watching the response function recover that answer.
+I will use the GOE warmup as a calibration case. The expected answer is the Wigner semicircle, so we can check whether the response function recovers the known spectral law. Once that works, the same language points toward the quantities that matter in learning problems: spectra, response functions, two-time memory surfaces, and loss curves.
 
 ---
 
@@ -73,25 +57,21 @@ The system has memory, and here memory is a two-time object.
 
 ## Why path integrals at all?
 
-Feynman’s quantum path integral sums over all paths $$x(t)$$, weighted by an action:
+Feynman introduced the path integral as a different formulation of quantum mechanics. The Schrödinger picture evolves wavefunctions by a differential equation. The path-integral picture asks for the amplitude to go from one state to another by summing over all possible histories connecting them. For a particle trajectory $$x(t)$$, the schematic object is
 
 $$
 \int \mathcal{D}x\, e^{\frac{i}{\hbar} S[x]}.
 $$
 
-In statistical mechanics the same grammar appears with real weights:
+The weight is determined by the classical action $$S[x]$$. This makes the connection to classical mechanics explicit: when $$\hbar$$ is small, the phase changes rapidly across most neighboring paths, so their contributions cancel. Near stationary-action paths, nearby phases align and add coherently. The classical trajectory is therefore recovered as a saddle of the sum over histories.
+
+This is useful because the formulation is naturally global. It does not require choosing a preferred sequence of intermediate states. It also makes symmetries, perturbation theory, and many-body averages easier to organize. In quantum field theory, the paths become field configurations; in statistical mechanics, the oscillatory quantum weight is replaced by a real Boltzmann weight:
 
 $$
 \int \mathcal{D}x\, e^{-S[x]}.
 $$
 
-The expression is compact almost to the point of being suspicious. All histories appear, and the classical action sits in the exponent. The amplitude is written directly as a sum over possibilities, without first solving an equation of motion and then translating that solution into probabilities.
-
-The classical limit gives the intuition. If the action changes rapidly from one nearby path to another, the phases $$e^{iS/\hbar}$$ rotate quickly and mostly cancel. But near a stationary path, where $$\delta S=0$$, nearby histories have nearly aligned phases and add coherently. The usual classical trajectory appears as the place where the sum over histories stops canceling itself.
-
-That is one reason the path integral is useful: it turns the principle of stationary action from a classical rule into an interference phenomenon. In the classical limit, the path of least action dominates because nearby histories add coherently while the other paths cancel.
-
-The implementation is difficult because the integral is over a space of functions, not a few variables. In quantum field theory, those histories are field configurations. In dynamical mean-field theory, they are trajectories of high-dimensional random systems. In both cases, the compact notation hides the hard part: extracting the macroscopic structure.
+The implementation is difficult because the integral is over a space of functions, not a few variables. The payoff is that once the problem is written as an integral over histories, averaging and saddle-point methods become systematic. Dynamical mean-field theory uses this same structure for high-dimensional random dynamics: write a generating functional over trajectories, enforce the equations of motion, average over disorder, and identify the collective observables that survive at large dimension.
 
 The DMFT path integral in Bordelon and Pehlevan is a cousin of Feynman’s original object: a generating functional that integrates over histories $$h(t)$$ and auxiliary response fields $$\hat{h}(t)$$ while enforcing the equations of motion. The shared structure is histories, constraints, actions, and saddle points, now applied to a different physical problem.
 
@@ -159,13 +139,13 @@ Before time enters the story, disorder in the entries already produces a determi
 
 ## What the path integral compresses
 
-I read the calculation as five moves. The paper writes the generating functional as
+The paper writes the generating functional as
 
 $$
 Z = \int \mathcal{D}Q\, e^{-N S[Q]},
 $$
 
-dominated by a saddle at large $$N$$. Here is the compressed version.
+dominated by a saddle at large $$N$$. The ingredients of the calculation are:
 
 First, enforce the dynamics. Only histories with
 
