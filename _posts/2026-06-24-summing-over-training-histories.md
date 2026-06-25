@@ -304,7 +304,7 @@ The animation below is the same decomposition, one lag at a time. The orange cur
 
 <figure class="blog-figure">
   <img src="/assets/img/blog/path-integral/gif-spectral-modes-response.gif" alt="Animation of spectral mode weights narrowing to the edge" width="640"/>
-  <figcaption>Animated spectral response. Left: W(λ, τ) at the current lag versus the static semicircle ρ(λ). Right: accumulated R<sub>z</sub>(τ). The banner gives the current τ.</figcaption>
+  <figcaption>Animated spectral response. Left: W(λ, τ) at the current lag versus the static semicircle ρ(λ). Right: accumulated R<sub>z</sub>(τ) as the lag increases.</figcaption>
 </figure>
 
 ---
