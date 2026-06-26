@@ -5,9 +5,9 @@ layout: post
 categories: [technical]
 ---
 
-Modern training runs are easy to observe but hard to compress. A single run can produce losses, gradient norms, spectra, activations, checkpoints, and alignment metrics at every step. These measurements are useful, but they do not by themselves explain the dynamics. The object producing them is still a high-dimensional system with millions to trillions of coupled parameters evolving under data, architecture, initialization, and optimization.
+Modern training runs are easy to observe and hard to compress. A single run can produce losses, gradient norms, spectra, activations, checkpoints, and alignment metrics at every step. These measurements are useful as raw traces; explanation still requires choosing the right summaries. The object producing them is a high-dimensional system with millions to trillions of coupled parameters evolving under data, architecture, initialization, and optimization.
 
-The question is therefore not only what can be logged, but which quantities are worth keeping. A useful theory of learning dynamics should identify observables that survive averaging, expose slow directions, predict response to perturbations, and explain why a learning curve has the shape it does.
+The central question is which logged quantities are worth keeping. A useful theory of learning dynamics should identify observables that survive averaging, expose slow directions, predict response to perturbations, and explain why a learning curve has the shape it does.
 
 This is the setting where statistical physics becomes useful. Large physical systems are rarely understood by listing every microscopic coordinate. They are understood through collective variables: correlations, responses, spectra, and order parameters. The microscopic degrees of freedom still exist, but the explanation often lives in lower-dimensional objects that remain stable at scale.
 
@@ -35,7 +35,7 @@ $$
 \theta_0,\ \theta_1,\ \ldots,\ \theta_T.
 $$
 
-One can track each component of $$\theta_t$$, but the more useful question is which collective observables carry information: correlations between times, response to perturbations, spectra of covariance matrices, and the loss curve itself.
+One can track each component of $$\theta_t$$. The more useful question is which collective observables carry information: correlations between times, response to perturbations, spectra of covariance matrices, and the loss curve itself.
 
 Bordelon and Pehlevan frame DMFT for disordered high-dimensional dynamics in exactly this language. The system has too many coupled coordinates to follow individually. After averaging over randomness and taking the large-$$N$$ limit, the dynamics collapse onto two two-time order parameters:
 
@@ -69,13 +69,13 @@ The weight is determined by the classical action $$S[x]$$. This makes the connec
 
 This is one reason the path integral is so appealing. It turns the principle of stationary action from a classical rule into an interference phenomenon. In the classical limit, the path of least action dominates because nearby histories add coherently while the other paths cancel.
 
-The formulation is also naturally global. It does not require choosing a preferred sequence of intermediate states. It organizes symmetries, perturbation theory, and many-body averages in a compact way. In quantum field theory, the paths become field configurations. In Euclidean or statistical field theory, the oscillatory quantum weight is replaced by a real weight,
+The formulation is also naturally global. It avoids committing to a preferred sequence of intermediate states, and it organizes symmetries, perturbation theory, and many-body averages in a compact way. In quantum field theory, the paths become field configurations. In Euclidean or statistical field theory, the oscillatory quantum weight is replaced by a real weight,
 
 $$
 \int \mathcal{D}x\, e^{-S[x]}.
 $$
 
-The implementation is difficult because the integral is over a space of functions, not a few variables. The payoff is that once the problem is written as an integral over histories, averaging and saddle-point methods become systematic. Dynamical mean-field theory uses this same structure for high-dimensional random dynamics: write a generating functional over trajectories, enforce the equations of motion, average over disorder, and identify the collective observables that survive at large dimension.
+The technical difficulty is the size of the domain: the integral ranges over functions rather than a finite list of coordinates. Once the problem is written as an integral over histories, averaging and saddle-point methods become systematic. Dynamical mean-field theory uses this same structure for high-dimensional random dynamics: write a generating functional over trajectories, enforce the equations of motion, average over disorder, and identify the collective observables that survive at large dimension.
 
 The DMFT path integral in Bordelon and Pehlevan is a cousin of Feynman’s original object. It is a generating functional that integrates over histories $$h(t)$$ and auxiliary response fields $$\hat{h}(t)$$ while enforcing the equations of motion. The shared structure is histories, constraints, actions, and saddle points, now applied to a different physical problem.
 
@@ -97,13 +97,13 @@ $$
 Z=\int \mathcal{D}Q\, e^{-N S[Q]}.
 $$
 
-The factor of $$N$$ in the exponent is the important clue. At large dimension, not every macroscopic history contributes equally. The integral concentrates near a saddle. The path integral is a disciplined way to ask:
+The factor of $$N$$ in the exponent is the important clue. At large dimension, macroscopic histories contribute unequally, and the integral concentrates near a saddle. The path integral is a disciplined way to ask:
 
 Which functions of the training history survive when the dimension is large?
 
 This is the conceptual bridge to learning. In quantum mechanics, the path integral asks which histories survive interference. In high-dimensional random dynamics, the DMFT path integral asks which collective histories survive disorder averaging and large-$$N$$ concentration. The microscopic description is too large to interpret directly, so the formalism points toward the macroscopic objects that remain.
 
-Takeaway. The path integral is compact to write down, but it is not a shortcut around the problem. Its value is that it organizes the problem so the right collective variables can be found.
+Takeaway. The path integral is compact to write down, while the hard work is extracting the saddle or approximation that reveals the right collective variables.
 
 ---
 
@@ -131,7 +131,7 @@ At fixed $$N$$, this is just a linear ODE: diagonalize $$M$$ and integrate. For 
 
 The formalism is built for settings where diagonalization stops being the right language: random features, SGD noise, non-Hermitian Jacobians, and matrices that evolve during training. The GOE case is the controlled place to see the machinery and verify it against the semicircle law.
 
-This example is intentionally favorable. $$M$$ is fixed, symmetric, Gaussian, and the dynamics are linear. That is precisely why it is useful as a calibration case. The goal is not realism, but a setting where the path-integral answer can be checked against a known spectral law.
+This example is intentionally favorable. $$M$$ is fixed, symmetric, Gaussian, and the dynamics are linear. That is precisely why it is useful as a calibration case: the path-integral answer can be checked against a known spectral law.
 
 The important phenomenon is self-averaging. In the large-$$N$$ limit, many details of the particular matrix draw disappear, while observables like the spectrum and response converge to deterministic limits.
 
@@ -142,7 +142,7 @@ The important phenomenon is self-averaging. In the large-$$N$$ limit, many detai
 
 Before time enters the story, disorder in the entries already produces a deterministic eigenvalue density. Figure 1 is the static hint that averaging works: draw a fresh GOE matrix, histogram its eigenvalues, and the semicircle shows up. If the path-integral / DMFT machinery is doing its job, every time-dependent quantity computed later should be built from this same $$\rho(\lambda)$$.
 
-Takeaway. The entries of $$M$$ are random, but the spectral density is deterministic at large $$N$$. This is the simplest form of self-averaging.
+Takeaway. The entries of $$M$$ are random, while the spectral density is deterministic at large $$N$$. This is the simplest form of self-averaging.
 
 ---
 
@@ -205,7 +205,7 @@ $$
 i\omega R(\omega)=1+R(\omega)^2.
 $$
 
-Choosing the branch with the correct large-$$|\omega|$$ behavior gives
+Choosing the branch with the correct high-frequency behavior gives
 
 $$
 R(\omega)
@@ -260,7 +260,7 @@ $$
 \lambda\in[-2,2].
 $$
 
-Takeaway. For linear random dynamics, the response function is a transform of the spectral density. It is not just another diagnostic; it is the spectrum read in time.
+Takeaway. For linear random dynamics, the response function is a transform of the spectral density: the spectrum read in time.
 
 **Stability note.**
 
@@ -270,7 +270,7 @@ $$
 \dot{h}=-Mh
 $$
 
-is not uniformly stable: modes with $$\lambda<0$$ grow under $$e^{-\lambda\tau}$$. For the response-decay numerics, we follow Bordelon and Pehlevan and add a stabilizing shift $$z=2$$:
+has growing modes: eigenvalues with $$\lambda<0$$ grow under $$e^{-\lambda\tau}$$. For the response-decay numerics, we follow Bordelon and Pehlevan and add a stabilizing shift $$z=2$$:
 
 $$
 \dot{h}(t)=-Mh(t)-zh(t),
@@ -310,7 +310,7 @@ What Figure 2 is measuring. Imagine injecting a unit perturbation into the syste
 
 I also checked finite-$$N$$ convergence. As $$N$$ grows from hundreds to thousands, the relative L2 error between $$R_z(\tau)$$ and the semicircle integral falls. Figure 2 already shows the agreement at $$N=4000$$, so I skip a separate plot.
 
-Takeaway. Late-time memory is controlled by the spectral edge. The response does not decay according to a typical eigenvalue; it is dominated by the slowest surviving modes.
+Takeaway. Late-time memory is controlled by the spectral edge. The slowest surviving modes dominate the response.
 
 What Figure 3 is showing. The response is an integral over eigenvalues. Figure 3 plots the integrand
 
@@ -336,7 +336,7 @@ The animation below is the same decomposition, one lag at a time. The orange cur
 
 ## Correlation and response surfaces
 
-$$C(t,t')$$ and $$R(t,t')$$ are functions of two times. History is encoded in relationships between pairs of times, not in a single clock reading.
+$$C(t,t')$$ and $$R(t,t')$$ are functions of two times. History is encoded in relationships between pairs of times rather than in a single clock reading.
 
 Correlation records temporal similarity:
 
@@ -468,7 +468,7 @@ therefore evolves under a random-matrix-driven linear dynamics, now governed by 
 
 In regression, $$M$$ is the empirical data covariance. Its eigenvalues are effective learning rates for different error modes. Large eigenvalues decay quickly; small eigenvalues are slow directions. When $$\alpha=P/N$$ crosses the interpolation threshold, the spectrum changes shape and bias-variance behavior becomes delicate.
 
-The analogy is not that linear regression is GOE. The analogy is that both relaxation curves and learning curves can be expressed through spectral averages of high-dimensional random matrices.
+The analogy is structural: both relaxation curves and learning curves can be expressed through spectral averages of high-dimensional random matrices.
 
 When loss is plotted against time, a microscopic training trajectory is being projected onto a scalar. Figure 7 gives a concrete instance: gradient descent on random linear regression at several sample-complexity ratios $$\alpha=P/N$$. Solid curves are train loss; dashed curves are test loss. Color encodes $$\alpha$$. The same DMFT logic applies, with a Wishart spectrum in place of the GOE spectrum.
 
@@ -479,7 +479,7 @@ When loss is plotted against time, a microscopic training trajectory is being pr
 
 Takeaway. In regression, the random matrix is no longer abstract. It is the empirical data covariance, and its spectrum determines learning timescales.
 
-The paper goes further in random feature models near interpolation, where test loss can be non-monotonic and the full two-time $$C(t,t')$$ carries information beyond the spectrum alone. I have not reproduced those curves here; this post stays on the GOE example where we have a calibration case.
+The paper goes further in random feature models near interpolation, where test loss can be non-monotonic and the full two-time $$C(t,t')$$ carries information beyond the spectrum alone. This post stays on the GOE example, where the calculation has a clean calibration target.
 
 ---
 
@@ -492,24 +492,24 @@ The example is still useful because it teaches the basic move: replace microscop
 There are several ways the full learning problem becomes harder:
 
 * The effective matrix can change during training.
-* The dynamics can be non-Hermitian, so eigenvalues alone may not describe transient behavior.
+* The dynamics can be non-Hermitian, so eigenvalues alone may miss transient behavior.
 * SGD introduces noise that can couple to the trajectory.
-* Feature learning changes the representation, not just the readout.
+* Feature learning changes the representation as well as the readout.
 * Nonlinear networks need additional order parameters beyond the linear response shown here.
 
-Takeaway. The GOE example is a solvable checkpoint, not a model of all learning dynamics. Its value is that the full path from microscopic dynamics to macroscopic observables can be seen clearly.
+Takeaway. The GOE example is a solvable checkpoint for seeing the full path from microscopic dynamics to macroscopic observables.
 
 ---
 
 ## Summary
 
-The full derivation is formal, but the conceptual target is concrete. Start with $$N$$ coupled variables. Average over disorder. Take $$N$$ large. Identify the self-consistent memory functions that survive. In the GOE warmup, this procedure recovers a spectral law we already trust. In learning problems, the same language gives a way to treat train and test curves as macroscopic observables of high-dimensional dynamics.
+The full derivation is formal, and the conceptual target is concrete. Start with $$N$$ coupled variables. Average over disorder. Take $$N$$ large. Identify the self-consistent memory functions that survive. In the GOE warmup, this procedure recovers a spectral law we already trust. In learning problems, the same language gives a way to treat train and test curves as macroscopic observables of high-dimensional dynamics.
 
-This is the part of path integrals I find most satisfying. The starting instruction is extremely simple: write down the histories, enforce the rules, and sum. But the result is not a brute-force enumeration of trajectories. After disorder averaging and a large-$$N$$ limit, the calculation points to the right macroscopic variables.
+This is the part of path integrals I find most satisfying. The starting instruction is simple: write down the histories, enforce the rules, and sum. After disorder averaging and a large-$$N$$ limit, the calculation points to the right macroscopic variables.
 
 In the GOE warmup, those variables are $$C(t,t')$$ and $$R(t,t')$$. The response function recovers the Wigner semicircle, the shifted response exposes the spectral edge, and the two-time surfaces show what the system remembers. The formalism is doing exactly what one would want from a theory of high-dimensional learning dynamics: it tells us what to keep.
 
-That is the appeal of the path-integral viewpoint for learning. It does not make the microscopic system small. It tells us which collective objects carry the dynamics at the scale where understanding becomes possible.
+That is the appeal of the path-integral viewpoint for learning. The microscopic system remains large, while the calculation identifies which collective objects carry the dynamics at the scale where understanding becomes possible.
 
 ---
 
