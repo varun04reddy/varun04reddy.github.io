@@ -19,9 +19,9 @@ My research interests center on intelligence, emergence, and learning theory. At
 
 I'm currently fortunate to be exploring these questions at Harvard under [Bernardo Sabatini](https://sabatini.hms.harvard.edu/). Previously, I studied Computer Science in the School of Engineering at the [University of Virginia](https://www.virginia.edu/), where I was grateful to work with [Yen-Ling Kuo](https://yenlingkuo.com/) on mechanistic interpretability and knowledge editing, and with [Laura Barnes](https://engineering.virginia.edu/faculty/laura-barnes) on AI for healthcare.
 
-During undergrad, I also worked at Chess.com as part of the [Fair Play R&D team](https://www.chess.com/blog/FairPlay), where I developed statistical learning models to detect overperformance in online chess play. I also spent time at Caltech in [Dean Mobbs](https://www.hss.caltech.edu/people/dean-mobbs)'s computational cognitive neuroscience group, where I first formally studied the brain.
+During undergrad, I also worked at Chess.com as part of the [Fair Play R&D team](https://www.chess.com/blog/FairPlay), where I developed statistical learning models to detect overperformance in online chess play. I also spent time at Caltech in [Dean Mobbs](https://www.hss.caltech.edu/people/dean-mobbs)' computational cognitive neuroscience group, where I first formally studied the brain.
 
-I also work on Content R&D at [Welch Labs](https://www.youtube.com/channel/UConVfxXodg78Tzh5nNu85Ew), where we help make accessible and visually beautiful AI and math content. I'm grateful to contribute to that work, including our book [here](https://www.welchlabs.com/store/illustrated-guide-to-ai).
+I also work on Content R&D at [Welch Labs](https://www.youtube.com/channel/UConVfxXodg78Tzh5nNu85Ew), where we help make accessible and visually beautiful AI and math content. You can check out our new book [here](https://www.welchlabs.com/store/illustrated-guide-to-ai)!
 
 [Read my longer research agenda →](/research/)
 
