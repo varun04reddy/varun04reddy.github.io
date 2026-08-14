@@ -7,6 +7,8 @@ description: Write technically complete, non-AI-sounding research blog posts for
 
 Write posts for this site (`The Latent Space`) that a researcher would actually want to finish. The voice is a human thinking in public: technically complete, specific, and unpolished in the ways that matter. It must not read as AI-generated.
 
+The facts are available elsewhere. The edge is commentary, and the way we explain, until the next step feels like something the reader could have thought of themselves, without losing technical clarity or depth. Personality, still serious. A tonal pop, not a TED talk and not a slide deck of "X is Y." sentences.
+
 Canonical influences (read [sources.md](sources.md) before a first post in a session):
 - Lilian Weng, [Lil'Log](https://lilianweng.github.io/): taxonomy, overview diagrams, paper-faithful surveys
 - Andrej Karpathy, [karpathy.github.io](https://karpathy.github.io/): experiment narratives, numbers, code, result-as-figure
@@ -26,7 +28,7 @@ Copy this checklist and track it:
 - [ ] Collect real papers, numbers, and (if Karpathy-type) a runnable experiment
 - [ ] Plan 2-5 figures that carry the argument
 - [ ] Write
-- [ ] Voice pass (em dashes, metaphors, AI tells, missing mechanism)
+- [ ] Voice pass (em dashes, metaphors, AI tells, staccato, missing commentary, missing mechanism)
 - [ ] Save to _posts/YYYY-MM-DD-slug.md and figures to assets/img/blog/
 ```
 
@@ -70,7 +72,7 @@ Title encodes the claim or the move, not the topic.
 Conventions:
 - `---` between major sections. Do not put a `---` after every heading.
 - `##` for real pivots. Almost never `###`. If you want a subhead, write a transition sentence.
-- Display math: `$$ ... $$`. Inline: `$...$`.
+- Display math: `$$ ... $$` on its own lines. Inline math on this site is also `$$...$$`. MathJax 3 here does not render `$...$`.
 - Link papers by name and year, with a URL.
 - Figures: HTML `<figure>` tags. See [figures.md](figures.md).
 - Optional `description:` in front matter if the listing page needs a one-liner.
@@ -143,9 +145,10 @@ Full rules in [voice.md](voice.md). Non-negotiable:
 
 - No em dashes. Use a period, comma, colon, or parentheses.
 - No unnecessary metaphors or similes. Analogies only if you need them to carry a derivation, and then you explain them.
-- No AI cadence. Read [voice.md](voice.md) and run the voice pass.
+- No AI cadence, in either direction: no generated Insight essay, and no stack of punchy "X is Y." sentences.
+- Personality, still serious. Join thoughts with commas. Put a first-person judgment or an aside in the section. Make the next equation feel like something the reader was about to write.
 
-Write like Varun's GPU-parameter post and knowledge-editing commentary, not like the grokking post's closing blockquote.
+Write like Varun's GPU-parameter post and knowledge-editing commentary: a person doing the arithmetic, then telling you what to notice. Do not imitate the old grokking closing blockquote, and do not imitate a slide deck.
 
 ## Figures
 
@@ -168,12 +171,12 @@ Full rules in [figures.md](figures.md). Minimum bar:
 Read at least one before writing.
 
 **Match these:**
-- `_posts/2026-07-10-gpu-parameter-counter.md`: specific, algebraic, honest about what the estimate is not. Best house example.
+- `_posts/2026-07-10-gpu-parameter-counter.md`: specific, algebraic, honest about what the estimate is not. Best house example for worked estimates.
 - `_posts/2025-05-25-knowledge-editing.md`: first-person commentary on work you did. Keep the casualness, raise the precision and figures.
 
-**Do not imitate the scaffolding of:**
-- `_posts/2026-04-20-grokking-double-descent.md`: tidy-story opening, obligatory interplay section, "Taking Stock", closing blockquote.
-- `_posts/2026-04-21-linear-probes.md`: strong content, but over-sectioned. Prefer fewer headings and more prose transitions.
+**Do not imitate:**
+- The old 7-part grokking/probes skeleton (tidy-story opening, obligatory interplay, "Taking Stock", closing blockquote).
+- A staccato rewrite that deleted the commentary along with the padding. If a paragraph is three disconnected facts, you over-cut.
 
 ## Additional resources
 

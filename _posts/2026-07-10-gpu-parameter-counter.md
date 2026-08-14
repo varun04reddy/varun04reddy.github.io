@@ -5,9 +5,9 @@ layout: post
 categories: [technical]
 ---
 
-Anthropic does not publish the parameter count of Claude Fable 5. The public description tells us the context window and the pricing, but not how many weights are inside it. That is normal for a proprietary model.
+Anthropic does not publish the parameter count of Claude Fable 5. The public description tells us the context window and the pricing, but not how many weights are inside it, which is normal for a proprietary model and also, if you like reverse-engineering, a little irritating.
 
-We can still get a rough estimate. Given the training compute and the amount of training data, we can work backwards. This will not reveal the architecture or distinguish a 150B model from a 170B model. For a mixture-of-experts model, it estimates active dense-equivalent parameters rather than total stored parameters.
+We can still get a rough estimate. Given the training compute and the amount of training data, we can work backwards, and you can already see the catch: this will not reveal the architecture, or distinguish a 150B model from a 170B model. For a mixture-of-experts model, it estimates active dense-equivalent parameters rather than total stored parameters, which is the number you actually wanted if you were hoping to gossip about total size.
 
 The compute accounting follows the approximation used by [Brown et al.](https://arxiv.org/abs/2005.14165): roughly six FLOPs per active parameter per training token. [Hoffmann et al.](https://arxiv.org/abs/2203.15556) give us a reference for how those tokens might be allocated. Together, these turn a hidden parameter count into an algebra problem.
 
@@ -21,7 +21,7 @@ $$
 C \approx 6 N_{\mathrm{active}} D.
 $$
 
-Why six? A forward pass costs approximately $$2 N_{\mathrm{active}}$$ FLOPs per token, while backprop adds approximately $$4 N_{\mathrm{active}}$$. Therefore
+Why six? A forward pass costs approximately $$2 N_{\mathrm{active}}$$ FLOPs per token, while backprop adds approximately $$4 N_{\mathrm{active}}$$, so you get
 
 $$
 2 N_{\mathrm{active}} + 4 N_{\mathrm{active}} = 6 N_{\mathrm{active}}.
@@ -101,7 +101,7 @@ $$
 
 which recovers the published model scale.
 
-The calculation is intentionally boring. It is not an independent recovery of Qwen's parameter count, because we constructed the compute estimate using that known count. It checks the algebra and shows how strongly a compute-only estimate depends on the token-to-parameter ratio. The more interesting calculation uses Chinchilla instead.
+The calculation is intentionally boring. It is not an independent recovery of Qwen's parameter count, because we constructed the compute estimate using that known count. It checks the algebra, and more usefully, it shows how strongly a compute-only estimate depends on the token-to-parameter ratio. The more interesting calculation, the one that can actually fool you, uses Chinchilla instead.
 
 For the same compute budget,
 
@@ -125,7 +125,7 @@ $$
 
 For Chinchilla, $$r \approx 20$$. For the Qwen2.5 example, $$r \approx 250$$. The same compute budget corresponds to very different model sizes depending on how much data the lab chose to spend on the model.
 
-For Fable 5, I would keep this uncertainty rather than choose one value for $$r$$.
+For Fable 5, I would keep this uncertainty rather than choose one value for $$r$$. Picking a single $$r$$ is how a blog post turns into a fake parameter detector.
 
 ---
 
@@ -229,7 +229,7 @@ The public information does not give us Fable 5's parameter count. It does give 
 
 Qwen is a useful arithmetic consistency check. The direct inversion recovers its known scale by construction. The Chinchilla-only estimate overshoots because Qwen used far more tokens per parameter than the original reference allocation. The difference comes from the training regime, not from the algebra.
 
-Applied to Fable 5, the estimate should be stated conditionally: given a plausible final-run compute budget, different data-to-active-parameter ratios imply different active dense-equivalent scales. Hardware measurements can then rule out some of them. That is the part we can calculate.
+Applied to Fable 5, the estimate should be stated conditionally: given a plausible final-run compute budget, different data-to-active-parameter ratios imply different active dense-equivalent scales, and hardware measurements can then rule out some of them. That is the part we can calculate, which is less exciting than a single number and, I think, the honest one.
 
 ---
 
