@@ -1,0 +1,693 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,decorations.markings,patterns,positioning}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+\hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue,citecolor=black}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Classical Mechanics notes}
+\fancyhead[R]{\small Susskind, Theoretical Minimum, Fall 2011}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+\newcommand{\qdot}{\dot{q}}
+\newcommand{\pdot}{\dot{p}}
+\newcommand{\ddt}{\frac{d}{dt}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\vect}[1]{\mathbf{#1}}
+
+\newtheorem*{defn}{Definition}
+\newtheorem*{thm}{Result}
+
+\title{Classical Mechanics\\[0.4em]
+\large Notes on Leonard Susskind, \emph{The Theoretical Minimum}\\
+Stanford Continuing Studies, Fall 2011}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+\begin{center}
+\small Unofficial study notes from the ten lectures at\\
+\url{https://theoreticalminimum.com/courses/classical-mechanics/2011/fall}\\[0.3em]
+Not a transcript. Not a substitute for the lectures or the book.
+\end{center}
+
+\tableofcontents
+\newpage
+
+%----------------------------------------------------------------------
+\section{Lecture 1. State diagrams and the nature of physical laws}
+
+A classical system has a set of possible \emph{states}. A \emph{dynamical law} says, given the present state, what the next state is.
+
+The simplest interesting example is a coin: two states, Heads ($H$) and Tails ($T$). A dynamical law is a rule $H\mapsto {}$something, $T\mapsto {}$something.
+
+\subsection{Determinism and reversibility}
+
+Classical physics requires two properties.
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Determinism (future).} From the present state there is exactly one next state. One arrow out of each state.
+\item \textbf{Reversibility (past).} There is exactly one previous state. One arrow into each state.
+\end{itemize}
+
+Together: every state has exactly one arrow in and one arrow out. Susskind calls this the conservation of information, sometimes the minus-first law: you always know where you are going and where you came from.
+
+If two arrows enter one state, two pasts become indistinguishable. Information is lost. If a state has no incoming arrow, you can never reverse into it.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Stealth, node distance=2.6cm, every node/.style={circle, draw, minimum size=0.85cm, inner sep=0, font=\small}]
+  \node (H1) {$H$};
+  \node (T1) [right=of H1] {$T$};
+  \draw[->] (H1) to[out=40,in=140] (T1);
+  \draw[->] (T1) to[out=220,in=-40] (H1);
+  \node[draw=none] at ($(H1)!0.5!(T1)+(0,-1.35)$) {\small (a) legal: one cycle};
+
+  \node (H2) [right=3.6cm of T1] {$H$};
+  \node (T2) [right=of H2] {$T$};
+  \draw[->] (H2) to[loop left] (H2);
+  \draw[->] (T2) to[loop right] (T2);
+  \node[draw=none] at ($(H2)!0.5!(T2)+(0,-1.35)$) {\small (b) legal: two 1-cycles};
+
+  \node (A) [below=2.3cm of H1] {$1$};
+  \node (B) [right=of A] {$2$};
+  \node (C) [right=of B] {$3$};
+  \draw[->] (A) -- (B);
+  \draw[->] (C) -- (B);
+  \draw[->] (B) to[loop above] (B);
+  \node[draw=none] at ($(A)!0.5!(C)+(0,-1.15)$) {\small (c) illegal: two arrows into $2$};
+\end{tikzpicture}
+\caption{State diagrams. (a) and (b) each have one arrow in and one arrow out of every state. (c) loses information: from $2$ you cannot tell whether the past was $1$ or $3$.}
+\end{figure}
+
+\subsection{Cycles and conservation laws}
+
+A legal finite diagram is a disjoint union of cycles. If the system starts on one cycle, it stays on that cycle. The label of the cycle is a conserved quantity.
+
+Coin examples of legal laws: stay put ($H\to H$, $T\to T$), or always flip ($H\to T$, $T\to H$). Illegal: both states flow to $H$ ($T$ has no past that returns to $T$).
+
+A six-sided die whose law is $n\mapsto n+1 \pmod{6}$ is one 6-cycle. A law that swaps $1\leftrightarrow 2$, cycles $3\to 4\to 5\to 3$, and leaves $6$ fixed has three conserved sectors. You can predict the future and reconstruct the past, but you cannot jump sectors.
+
+Unlimited numbers of states are allowed (a particle on a line, a real number as the state). The same rule still applies: the dynamical law must be a one-to-one map on the state space. Colliding arrows, or arrows that dump many states into one, are still forbidden.
+
+\subsection{From discrete states to particles}
+
+A system of $N$ point particles in 3-space has configuration $(x_1,y_1,z_1,\ldots,x_N,y_N,z_N)$. Configuration is not the full state. The law must also know how the configuration is changing, so the state includes velocities (or momenta). That is Lecture~2.
+
+\subsection{Vectors, velocity, acceleration}
+
+A displacement is a vector $\vect{r}$. Addition is the parallelogram rule. The dot product
+\[
+\vect{a}\cdot\vect{b} = |\vect{a}|\,|\vect{b}|\cos\theta
+\]
+is the law of cosines in vector form:
+\[
+|\vect{a}-\vect{b}|^2 = |\vect{a}|^2 + |\vect{b}|^2 - 2\,\vect{a}\cdot\vect{b}.
+\]
+In components $\vect{a}\cdot\vect{b} = a_x b_x + a_y b_y + a_z b_z$.
+
+A trajectory is $\vect{r}(t)$. Velocity and acceleration:
+\[
+\vect{v} = \dot{\vect{r}} = \ddt\vect{r},\qquad
+\vect{a} = \dot{\vect{v}} = \ddot{\vect{r}}.
+\]
+Uniform circular motion of radius $R$ and speed $v$ has centripetal acceleration
+\[
+|\vect{a}| = \frac{v^2}{R}
+\]
+directed toward the center. In polar form, if $\theta = \omega t$ with $\omega = v/R$ constant,
+\[
+x = R\cos\omega t,\quad y = R\sin\omega t,
+\]
+and $\ddot{x} = -\omega^2 x$, $\ddot{y} = -\omega^2 y$, so $\vect{a} = -\omega^2\vect{r}$.
+
+%----------------------------------------------------------------------
+\section{Lecture 2. Newton's law, phase space, momentum and energy}
+
+\subsection{Aristotle versus Newton}
+
+Aristotle: force is proportional to velocity. A push is needed to keep moving. That is a good description of motion in thick air or molasses. It is not the law in empty space.
+
+Newton, inertial frames: if $\vect{F}=0$, then $\vect{a}=0$. Uniform motion, not rest, is the default.
+
+Newton's second law:
+\[
+\vect{F} = m\vect{a} = \ddt\vect{p},\qquad \vect{p} = m\vect{v}.
+\]
+If mass is constant this is $F=ma$. The $dp/dt$ form is the one that survives later.
+
+The third law: if $A$ pushes $B$ with $\vect{F}_{AB}$, then $B$ pushes $A$ with $\vect{F}_{BA} = -\vect{F}_{AB}$.
+
+\subsection{Why the state is $(x,v)$}
+
+The second law is a second-order equation for $\vect{r}(t)$. To start the clock you need $\vect{r}$ and $\vect{v}$ at $t=0$. The state of $N$ particles is therefore $6N$ numbers: three positions and three velocities (or momenta) per particle. That space is \emph{phase space}. A point in phase space, plus the law, determines the whole future and the whole past. That is Newton's version of determinism plus reversibility.
+
+Time reversal: $t\to -t$ sends $\vect{v}\to -\vect{v}$. Newton's law with forces that depend on positions (not on odd powers of velocity) is invariant under that replacement.
+
+\subsection{Conservation of momentum}
+
+For an isolated collection of particles, internal forces cancel in pairs by the third law:
+\[
+\ddt\sum_i \vect{p}_i = \sum_i \vect{F}_i^{\mathrm{ext}} + \sum_{i<j}(\vect{F}_{ij}+\vect{F}_{ji}) = \sum_i \vect{F}_i^{\mathrm{ext}}.
+\]
+If there are no external forces, total momentum $\vect{P}=\sum_i\vect{p}_i$ is constant. In the language of Lecture~1: phase space splits into sectors labeled by $\vect{P}$, and the motion never leaves its sector.
+
+\subsection{Potential energy}
+
+A force is conservative if it is minus the gradient of a function $V(\vect{r})$:
+\[
+\vect{F} = -\nabla V.
+\]
+In one dimension, $F(x) = -V'(x)$. Then
+\[
+\ddt\Bigl(\tfrac12 m v^2 + V(x)\Bigr) = v\bigl(ma + V'(x)\bigr) = v(F - F) = 0.
+\]
+The conserved quantity is the energy
+\[
+E = T + V,\qquad T = \frac{p^2}{2m} = \tfrac12 m v^2.
+\]
+For $N$ particles with a potential $V(\vect{r}_1,\ldots,\vect{r}_N)$ that depends only on the positions,
+\[
+E = \sum_i \frac{p_i^2}{2m_i} + V
+\]
+is conserved when $V$ has no explicit time dependence.
+
+\subsection{Harmonic oscillator}
+
+Hooke's law $F = -kx$ is the potential $V = \tfrac12 k x^2$. The equation is
+\[
+\ddot{x} + \omega^2 x = 0,\qquad \omega = \sqrt{\frac{k}{m}}.
+\]
+Solutions: $x(t) = A\cos(\omega t+\phi)$. Energy
+\[
+E = \frac{p^2}{2m} + \tfrac12 k x^2
+\]
+is constant. In the $(x,p)$ plane the orbit is an ellipse. That picture returns with Hamilton's equations.
+
+%----------------------------------------------------------------------
+\section{Lecture 3. Lagrangian, least action, Euler--Lagrange equations}
+
+Newton's law is tied to Cartesian coordinates. The Lagrangian formulation is the same physics, written so that any coordinates work, and so that the step to field theory and quantum mechanics is short.
+
+\subsection{Action}
+
+A trajectory $q(t)$ between fixed endpoints $q(t_1)=q_1$, $q(t_2)=q_2$ has an \emph{action}
+\[
+A[q] = \int_{t_1}^{t_2} L(q,\qdot,t)\,dt.
+\]
+The function $L$ is the Lagrangian. For ordinary particles in a potential,
+\[
+L = T - V = \sum_i \tfrac12 m_i \dot{\vect{r}}_i^2 - V(\vect{r}_1,\ldots,\vect{r}_N).
+\]
+(Note $T-V$, not $T+V$.)
+
+The \emph{principle of stationary action}: the true trajectory is a stationary point of $A$. Among nearby paths with the same endpoints, $\delta A = 0$. ``Least'' is the historical name; the condition is that the first variation vanishes.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Stealth, scale=1.05]
+  \draw[->] (-0.3,0) -- (7.2,0) node[right] {$t$};
+  \draw[->] (0,-0.3) -- (0,3.6) node[above] {$q$};
+  \fill (0.8,1.0) circle (1.6pt) node[below left] {$q_1$};
+  \fill (6.2,2.4) circle (1.6pt) node[below right] {$q_2$};
+  \draw[thick] (0.8,1.0) .. controls (2.4,2.6) and (4.6,0.7) .. (6.2,2.4);
+  \draw[thick, dashed] (0.8,1.0) .. controls (2.2,3.2) and (4.8,1.6) .. (6.2,2.4);
+  \node at (3.6,0.55) {\small true path $q(t)$};
+  \node at (4.7,3.15) {\small varied path $q+\delta q$};
+\end{tikzpicture}
+\caption{Stationary action. Endpoints are held fixed. The true path is the one for which a first-order change in the path does not change $A$.}
+\end{figure}
+
+\subsection{Euler--Lagrange equations}
+
+Let $q(t)\to q(t)+\varepsilon\,\eta(t)$ with $\eta(t_1)=\eta(t_2)=0$. Then
+\[
+\delta A = \varepsilon\int_{t_1}^{t_2}\Bigl(
+\pd{L}{q}\eta + \pd{L}{\qdot}\dot\eta\Bigr)dt.
+\]
+Integrate the second term by parts. The boundary term dies, and
+\[
+\delta A = \varepsilon\int_{t_1}^{t_2}\eta\Bigl(
+\pd{L}{q} - \ddt\pd{L}{\qdot}\Bigr)dt.
+\]
+For this to vanish for every $\eta$,
+\begin{equation}
+\label{eq:EL}
+\ddt\pd{L}{\qdot} = \pd{L}{q}.
+\end{equation}
+One equation per coordinate. These are the Euler--Lagrange equations.
+
+\subsection{Recovery of Newton}
+
+Take one particle, $L = \tfrac12 m\dot{x}^2 - V(x)$. Then
+\[
+\pd{L}{\dot{x}} = m\dot{x},\qquad
+\pd{L}{x} = -V'(x),
+\]
+so \eqref{eq:EL} is $m\ddot{x} = -V'(x)$. Same as $F=ma$.
+
+The reason to keep $L$ anyway: you may use any coordinates you like. The form of \eqref{eq:EL} does not change.
+
+\subsection{Polar coordinates and cyclic coordinates}
+
+Two-dimensional motion, polar coordinates $(r,\theta)$:
+\[
+x=r\cos\theta,\quad y=r\sin\theta,
+\]
+\[
+T = \tfrac12 m(\dot{r}^2 + r^2\dot\theta^2).
+\]
+If $V=V(r)$ only, then $L$ does not depend on $\theta$. A coordinate that does not appear in $L$ (only its velocity does) is \emph{cyclic}. Euler--Lagrange then says
+\[
+\ddt\pd{L}{\dot\theta} = 0 \implies p_\theta := \pd{L}{\dot\theta} = m r^2\dot\theta
+\]
+is constant. That is angular momentum about the origin.
+
+\subsection{Two warmup problems for stationary action}
+
+Fermat: light takes a path of stationary time. Two media with speeds $c_1$, $c_2$, interface a straight line. Stationary time gives Snell's law
+\[
+\frac{\sin\theta_1}{c_1} = \frac{\sin\theta_2}{c_2}.
+\]
+Same calculus as $\delta A=0$, with $L$ replaced by $n/c$ along the path.
+
+A hanging chain of fixed length minimizes potential energy. The curve is a catenary, $y = a\cosh(x/a)$. Again a stationary-integral problem, now with a constraint. The mechanical action principle is the same idea with $L=T-V$ and time as the parameter.
+
+\subsection{Rotating frames}
+
+If you write $L$ in a frame rotating at constant $\omega$, extra terms appear. They produce the centrifugal force and the Coriolis force. Those are not new interactions. They are what Newton's law looks like after a time-dependent coordinate change. The Lagrangian is doing the change of coordinates for you.
+
+The same mechanism appears later with magnetic fields (Lecture~9): a velocity-dependent term in $L$ that looks like Coriolis.
+
+%----------------------------------------------------------------------
+\section{Lecture 4. Symmetry and conservation laws}
+
+A \emph{symmetry} of the Lagrangian is a continuous change of coordinates that leaves $L$ unchanged (or changes it by a total time derivative, which does not affect the action).
+
+Noether's theorem, in the form used in this course: a continuous symmetry implies a conserved quantity.
+
+\subsection{Generalized coordinates and conjugate momenta}
+
+Coordinates $q_i$ need not be Cartesian. The \emph{canonical conjugate momentum} to $q_i$ is
+\[
+p_i = \pd{L}{\qdot_i}.
+\]
+This $p_i$ need not equal $m\dot{q}_i$. In polar coordinates, $p_\theta = mr^2\dot\theta$. In a magnetic field it will include $qA$ (Lecture~10).
+
+If $q_i$ is cyclic, $\partial L/\partial q_i = 0$, so $\dot p_i = 0$. Cyclic coordinate $\Leftrightarrow$ conserved conjugate momentum.
+
+\subsection{Translations and momentum}
+
+Shift every Cartesian coordinate, $x_i \to x_i + \varepsilon$. If $V$ depends only on differences $x_i-x_j$, then $L$ is unchanged. The conserved Noether charge is total momentum
+\[
+P_x = \sum_i \pd{L}{\dot{x}_i} = \sum_i m_i \dot{x}_i.
+\]
+Same for $y$ and $z$. Space-translation symmetry $\Leftrightarrow$ conservation of momentum.
+
+\subsection{Rotations and angular momentum}
+
+An infinitesimal rotation about $z$,
+\[
+\delta x = -\varepsilon y,\qquad \delta y = \varepsilon x.
+\]
+If $L$ is invariant, the conserved charge is
+\[
+L_z = \sum_i (x_i p_{y,i} - y_i p_{x,i}).
+\]
+Rotational symmetry $\Leftrightarrow$ conservation of angular momentum $\vect{L} = \vect{r}\times\vect{p}$ (summed over particles).
+
+\subsection{Discrete symmetries}
+
+Parity ($x\to -x$) and other discrete maps can be symmetries. In classical mechanics they do not give a conserved charge in Noether's sense. You need a continuous family of transformations, parameterized by a small $\varepsilon$, to get $dQ/dt=0$.
+
+\subsection{Harmonic oscillator, again}
+
+$L = \tfrac12 m\dot{x}^2 - \tfrac12 k x^2$. No translation symmetry (the origin is special). No conserved momentum. Energy is still conserved; that comes from time translation, next lecture.
+
+%----------------------------------------------------------------------
+\section{Lecture 5. The Hamiltonian}
+
+\subsection{Active versus passive}
+
+An \emph{active} transformation moves the system. A \emph{passive} transformation relabels coordinates. For Noether it is enough that $L$ look the same after the change. The two viewpoints give the same conserved charges.
+
+\subsection{Time translation and energy}
+
+Suppose $L$ has no explicit $t$: $L=L(q,\qdot)$. Shift the whole history, $q(t)\to q(t+\varepsilon)$. Stationary action plus this symmetry implies a conserved energy. The conserved quantity is the \emph{Hamiltonian}
+\begin{equation}
+\label{eq:Hdef}
+H(q,p) = \sum_i p_i \qdot_i - L,
+\end{equation}
+with $\qdot$ eliminated in favor of $p$ using $p=\partial L/\partial\qdot$.
+
+If $L=\sum \tfrac12 m \dot{q}^2 - V(q)$, then $p=m\qdot$ and
+\[
+H = T + V.
+\]
+So for standard mechanical systems, $H$ is the energy. The definition \eqref{eq:Hdef} is more general. It is a Legendre transform from $(q,\qdot)$ to $(q,p)$.
+
+If $\partial L/\partial t = 0$, then $dH/dt=0$ on solutions of Euler--Lagrange. Time-translation symmetry $\Leftrightarrow$ conservation of $H$.
+
+Sketch of the conservation proof. On a solution,
+\begin{align*}
+\ddt L
+&= \pd{L}{q}\qdot + \pd{L}{\qdot}\ddot q
+= \ddt\!\Bigl(p\,\qdot\Bigr),
+\end{align*}
+using $p=\partial L/\partial\qdot$ and Euler--Lagrange. Hence $d(p\qdot - L)/dt = 0$.
+
+%----------------------------------------------------------------------
+\section{Lecture 6. Hamilton's equations}
+
+Euler--Lagrange is $n$ second-order equations for $n$ coordinates. Hamilton's equations are $2n$ first-order equations on phase space.
+
+\subsection{The equations}
+
+Solve $p=\partial L/\partial\qdot$ for $\qdot=\qdot(q,p)$, build $H(q,p)$ from \eqref{eq:Hdef}. Then
+\begin{equation}
+\label{eq:Ham}
+\qdot = \pd{H}{p},\qquad
+\pdot = -\pd{H}{q}.
+\end{equation}
+Check for $H=p^2/(2m)+V(q)$:
+\[
+\qdot = \frac{p}{m},\qquad \pdot = -V'(q),
+\]
+which is Newton.
+
+The first equation is the kinematic relation between $p$ and velocity. The second is the force law. Together they define a flow on phase space: every point $(q,p)$ has a unique velocity vector $(\qdot,\pdot)$.
+
+\subsection{Harmonic oscillator in phase space}
+
+\[
+H = \frac{p^2}{2m} + \tfrac12 k q^2.
+\]
+Hamilton's equations:
+\[
+\qdot = \frac{p}{m},\qquad \pdot = -k q.
+\]
+Differentiate the first and substitute: $\ddot q = -(k/m)q$. Level sets of $H$ are ellipses. The motion runs around the ellipse at angular frequency $\omega=\sqrt{k/m}$.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Stealth, scale=0.95]
+  \draw[->] (-3.6,0) -- (3.6,0) node[right] {$q$};
+  \draw[->] (0,-2.6) -- (0,2.6) node[above] {$p$};
+  \draw[thick] (0,0) ellipse (2.6cm and 1.7cm);
+  \draw[thick] (0,0) ellipse (1.7cm and 1.1cm);
+  \draw[->] (2.6,0.15) -- (2.55,-0.25);
+  \draw[->] (0.1,-1.7) -- (-0.35,-1.65);
+  \draw[->] (-2.6,-0.15) -- (-2.55,0.25);
+  \draw[->] (-0.1,1.7) -- (0.35,1.65);
+  \node at (3.05,1.35) {\small $H=E_2$};
+  \node at (2.05,0.85) {\small $H=E_1$};
+\end{tikzpicture}
+\caption{Phase space of the harmonic oscillator. Curves of constant $H$ are ellipses. Arrows are the Hamiltonian flow. Higher energy is a larger ellipse.}
+\end{figure}
+
+\subsection{Examples from the lecture}
+
+\textbf{Particle on a wedge.} A block slides on a frictionless wedge of angle $\alpha$, wedge free to move on a horizontal line. Coordinates: wedge position $X$, distance $s$ of the block along the slope. Then
+\[
+x_{\mathrm{block}} = X + s\cos\alpha,\qquad
+y_{\mathrm{block}} = -s\sin\alpha,
+\]
+\[
+T = \tfrac12 M\dot X^2 + \tfrac12 m\bigl((\dot X + \dot s\cos\alpha)^2 + \dot s^2\sin^2\alpha\bigr),\qquad
+V = -mgs\sin\alpha.
+\]
+$X$ is cyclic, so $p_X = \partial L/\partial \dot X$ is conserved (horizontal momentum). Energy is conserved. The two conservation laws plus the two coordinates close the problem.
+
+\textbf{Double pendulum.} Two angles $(\theta_1,\theta_2)$, lengths $\ell_1,\ell_2$, masses $m_1,m_2$. Kinetic energy has a cross term $m_2\ell_1\ell_2\dot\theta_1\dot\theta_2\cos(\theta_1-\theta_2)$. Conjugate momenta are not $m\ell\dot\theta$. With gravity, $L$ depends on both angles; only $H$ is conserved. Without gravity (or both pivots free in a plane with no preferred direction) a simultaneous rotation is a symmetry and total $p_\theta$ is conserved.
+
+\subsection{Forbidden laws, again}
+
+Hamilton's equations automatically give a deterministic reversible flow: one vector $(\qdot,\pdot)$ at each phase-space point, and reversing $p\to -p$, $t\to -t$ runs the trajectory backward (for standard $H$). A law that made all trajectories fall into a sink would not come from any $H$.
+
+%----------------------------------------------------------------------
+\section{Lecture 7. Liouville's theorem}
+
+Watch not one system but a cloud of systems, a little blob of points in phase space. Each point moves by \eqref{eq:Ham}. Liouville's theorem: the volume of the blob is constant in time. Hamiltonian flow is incompressible.
+
+\subsection{Energy surfaces}
+
+Because $H$ is conserved, motion of a single system stays on the surface $H(q,p)=E$. The cloud can stretch and fold on that surface. It cannot shrink to a point.
+
+\subsection{Divergence of the flow}
+
+In $(q,p)$ the flow velocity is $\vect{u}=(\partial H/\partial p,\,-\partial H/\partial q)$. Its divergence is
+\[
+\nabla\cdot\vect{u}
+= \pd{}{q}\Bigl(\pd{H}{p}\Bigr) + \pd{}{p}\Bigl(-\pd{H}{q}\Bigr)
+= \frac{\partial^2 H}{\partial q\,\partial p} - \frac{\partial^2 H}{\partial p\,\partial q}
+= 0.
+\]
+In $n$ degrees of freedom the same cancellation happens pair by pair. Incompressible flow $\Leftrightarrow$ Liouville.
+
+A cube of sides $\Delta q$, $\Delta p$ may get long and thin. The product $\Delta q\,\Delta p$ (the area) stays the same.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[>=Stealth]
+  \draw[->] (0,0) -- (3.4,0) node[right] {$q$};
+  \draw[->] (0,0) -- (0,2.6) node[above] {$p$};
+  \draw[thick, fill=gray!15] (0.7,0.7) rectangle (1.6,1.6);
+  \node at (1.15,-0.45) {\small $t=0$};
+
+  \draw[->] (3.7,1.2) -- (4.5,1.2);
+
+  \begin{scope}[xshift=5.2cm]
+    \draw[->] (0,0) -- (3.6,0) node[right] {$q$};
+    \draw[->] (0,0) -- (0,2.6) node[above] {$p$};
+    \draw[thick, fill=gray!15] (1.1,0.45) -- (2.9,0.7) -- (2.55,1.35) -- (0.75,1.1) -- cycle;
+    \node at (1.8,-0.45) {\small later $t$, same area};
+  \end{scope}
+\end{tikzpicture}
+\caption{Liouville. A region of phase space is deformed by the flow. Area (volume) is preserved. A damped oscillator would shrink the blob; damping is not Hamiltonian.}
+\end{figure}
+
+\subsection{Counterexample: damping}
+
+The damped oscillator $\ddot q + \gamma \qdot + \omega^2 q = 0$ spirals into the origin in phase space. Areas shrink. There is no $H$ that produces this flow as Hamilton's equations. Friction is a bookkeeping device for degrees of freedom you have chosen not to track. The full isolated system still obeys Liouville.
+
+\subsection{Poisson brackets}
+
+For two functions $F(q,p)$, $G(q,p)$,
+\begin{equation}
+\label{eq:PB}
+\{F,G\} = \pd{F}{q}\pd{G}{p} - \pd{F}{p}\pd{G}{q}.
+\end{equation}
+In $n$ dimensions, sum over $i$: $\{F,G\}=\sum_i(\partial F/\partial q_i\,\partial G/\partial p_i - \partial F/\partial p_i\,\partial G/\partial q_i)$.
+
+Hamilton's equations become
+\[
+\qdot = \{q,H\},\qquad \pdot = \{p,H\}.
+\]
+For any $F(q,p,t)$,
+\[
+\ddt F = \{F,H\} + \pd{F}{t}.
+\]
+If $F$ has no explicit time dependence, $\dot F = \{F,H\}$. Conserved quantities are those with $\{F,H\}=0$.
+
+Basic brackets:
+\[
+\{q,p\}=1,\qquad \{q,q\}=0,\qquad \{p,p\}=0.
+\]
+
+%----------------------------------------------------------------------
+\section{Lecture 8. Poisson brackets}
+
+\subsection{Algebra}
+
+Poisson brackets are antisymmetric, linear, and obey the Leibniz (product) rule and the Jacobi identity:
+\begin{align*}
+\{F,G\} &= -\{G,F\},\\
+\{F,GH\} &= \{F,G\}H + G\{F,H\},\\
+\{F,\{G,H\}\} + \{G,\{H,F\}\} + \{H,\{F,G\}\} &= 0.
+\end{align*}
+This is the same algebra that commutators satisfy in quantum mechanics, with $\{,\}\leftrightarrow [\,,\,]/i\hbar$.
+
+\subsection{Generators of symmetries}
+
+Infinitesimal translations in $q$ are generated by $p$:
+\[
+\{q,p\}=1,\qquad \{p,p\}=0.
+\]
+Infinitesimal time shift is generated by $H$: $\dot F=\{F,H\}$.
+
+If $Q$ generates a symmetry, then $Q$ is conserved: $\{Q,H\}=0$. Conversely a conserved $Q$ generates a symmetry of the flow. That is Noether in Poisson-bracket language.
+
+Momentum $P$ generates translations. Angular momentum $L_z$ generates rotations about $z$. $H$ generates time evolution.
+
+\subsection{Angular momentum algebra}
+
+For $\vect{L}=\vect{r}\times\vect{p}$,
+\[
+\{L_x,L_y\} = L_z,\qquad
+\{L_y,L_z\} = L_x,\qquad
+\{L_z,L_x\} = L_y,
+\]
+or $\{L_i,L_j\}=\epsilon_{ijk}L_k$. Also $\{L_i,L^2\}=0$. If $H$ is rotationally invariant, $\{L_i,H\}=0$, so each component of $\vect{L}$ is conserved.
+
+\subsection{Gyroscope}
+
+A rigid body with angular momentum $\vect{L}$ and body-frame inertia has a Hamiltonian that is quadratic in $\vect{L}$. Poisson brackets then give Euler's equations
+\[
+\dot{\vect{L}} = \vect{\omega}\times\vect{L}
+\]
+without going back to the original angles. That is the point of the algebra: once you know $\{L_i,L_j\}$ and $H(L)$, the motion of $\vect{L}$ is determined.
+
+%----------------------------------------------------------------------
+\section{Lecture 9. Electric and magnetic fields, part 1}
+
+\subsection{Fields}
+
+At each point in space there is an electric field $\vect{E}(\vect{r})$ and a magnetic field $\vect{B}(\vect{r})$. (This course treats them as given background fields, static for most of Lectures~9--10.) A charge $q$ feels the Lorentz force
+\begin{equation}
+\label{eq:Lorentz}
+\vect{F} = q\bigl(\vect{E} + \vect{v}\times\vect{B}\bigr).
+\end{equation}
+The magnetic piece is perpendicular to $\vect{v}$, so it does no work. It changes direction, not speed.
+
+\subsection{Vector calculus}
+
+The operator $\nabla$ (``del'') acts as a vector of derivatives $(\partial_x,\partial_y,\partial_z)$.
+\begin{align*}
+\operatorname{grad}\Phi &= \nabla\Phi,\\
+\operatorname{div}\vect{A} &= \nabla\cdot\vect{A},\\
+\operatorname{curl}\vect{A} &= \nabla\times\vect{A}.
+\end{align*}
+Identities used constantly:
+\[
+\nabla\times(\nabla\Phi)=0,\qquad \nabla\cdot(\nabla\times\vect{A})=0.
+\]
+The Levi-Civita symbol $\epsilon_{ijk}$ is the totally antisymmetric tensor with $\epsilon_{123}=1$. Then $(\vect{a}\times\vect{b})_i = \epsilon_{ijk}a_j b_k$, and
+\[
+(\nabla\times\vect{A})_i = \epsilon_{ijk}\partial_j A_k.
+\]
+
+\subsection{Vector potential and gauge}
+
+Because $\nabla\cdot\vect{B}=0$ (no magnetic monopoles in this setup), one can write
+\[
+\vect{B} = \nabla\times\vect{A}
+\]
+for a vector potential $\vect{A}$. For electrostatics, $\vect{E}=-\nabla\Phi$.
+
+$\vect{A}$ is not unique. The \emph{gauge transformation}
+\[
+\vect{A}\to\vect{A}+\nabla\lambda,\qquad \Phi\to\Phi
+\]
+(for static fields) leaves $\vect{B}$ unchanged, because the curl of a gradient is zero. Physics depends on $\vect{E}$ and $\vect{B}$, not on a particular choice of $\vect{A}$. Equations of motion must be gauge invariant.
+
+\subsection{Lagrangian for a charge}
+
+The magnetic force $q\vect{v}\times\vect{B}$ is not minus a gradient of a potential $V(\vect{r})$. Ordinary $L=T-V$ cannot produce it. You need a term linear in velocity. The Lagrangian that reproduces \eqref{eq:Lorentz} is
+\begin{equation}
+\label{eq:LEM}
+L = \tfrac12 m \vect{v}^2 - q\Phi(\vect{r}) + q\,\vect{v}\cdot\vect{A}(\vect{r}).
+\end{equation}
+The last term is the same kind of object as the Coriolis term in a rotating frame.
+
+Gauge invariance of the action: under $\vect{A}\to\vect{A}+\nabla\lambda$,
+\[
+L \to L + q\,\vect{v}\cdot\nabla\lambda = L + q\ddt\lambda(\vect{r}(t)).
+\]
+The extra piece is a total time derivative. The action changes by $q[\lambda(t_2)-\lambda(t_1)]$, which does not affect the Euler--Lagrange equations when endpoints are fixed. The equations of motion are gauge invariant even though $L$ is not.
+
+%----------------------------------------------------------------------
+\section{Lecture 10. Electric and magnetic fields, part 2}
+
+\subsection{Canonical versus mechanical momentum}
+
+From \eqref{eq:LEM},
+\[
+p_i = \pd{L}{v_i} = m v_i + q A_i.
+\]
+The canonical momentum $\vect{p}$ is not $m\vect{v}$. The mechanical momentum is $m\vect{v}=\vect{p}-q\vect{A}$.
+
+Noether's theorem conserves \emph{canonical} momenta when the corresponding coordinates are cyclic. In a magnetic field, $m\vect{v}$ is generally not conserved even if the physics is translation invariant in some gauge.
+
+\subsection{Hamiltonian}
+
+Legendre transform:
+\[
+H = \vect{p}\cdot\vect{v} - L = \frac{(\vect{p}-q\vect{A})^2}{2m} + q\Phi.
+\]
+Hamilton's equations from this $H$ are the Lorentz force law.
+
+\subsection{Euler--Lagrange recovers Lorentz}
+
+Compute $\partial L/\partial x$ and $d(\partial L/\partial \dot x)/dt$ from \eqref{eq:LEM}. After collecting terms and using $B=\nabla\times A$, $E=-\nabla\Phi$, one gets
+\[
+m\dot{\vect{v}} = q(\vect{E}+\vect{v}\times\vect{B}).
+\]
+The vector potential is needed if you want a least-action principle. The force law itself mentions only $\vect{E}$ and $\vect{B}$.
+
+\subsection{Gauge choice and cyclic coordinates}
+
+A constant field $\vect{B}=B\hat z$ can be written, among other ways,
+\[
+\vect{A} = \tfrac12 \vect{B}\times\vect{r}
+= \bigl(-\tfrac12 B y,\,\tfrac12 B x,\,0\bigr)
+\qquad\text{or}\qquad
+\vect{A} = (-B y,\, 0,\, 0).
+\]
+They differ by a gradient. In the second (Landau) gauge, $L$ does not depend on $x$, so $p_x$ is conserved. Combined with energy conservation you get circular motion in the $xy$-plane.
+
+Mechanical velocity: $m\dot x = p_x - q A_x = p_x + q B y$, $m\dot y = p_y$. Energy
+\[
+E = \frac{1}{2m}\bigl[(p_x + q B y)^2 + p_y^2\bigr]
+\]
+is conserved ($p_x$ is a constant). Completing the square, $y$ oscillates about $y_0 = -p_x/(qB)$ at the cyclotron frequency
+\[
+\omega_c = \frac{qB}{m},
+\]
+with radius $v_\perp/\omega_c$, plus uniform motion along $z$.
+
+That is the course's closing example: Lagrangian, gauge, cyclic coordinates, conserved canonical momentum, Hamiltonian, and the actual orbit, all on one problem.
+
+\subsection{Monopoles (questions)}
+
+If magnetic monopoles existed, $\nabla\cdot\vect{B}\neq 0$ and a globally smooth $\vect{A}$ would not exist. You can still work with $\vect{A}$ on overlapping patches (Dirac string / Dirac quantization). The lectures flag this; they do not build the theory.
+
+%----------------------------------------------------------------------
+\section*{Formula sheet}
+
+\begin{align*}
+F&=ma=\dot p,\quad p=mv \\
+L&=T-V,\quad
+\ddt\pd{L}{\qdot}=\pd{L}{q},\quad
+p=\pd{L}{\qdot} \\
+H&=p\qdot-L,\quad
+\qdot=\pd{H}{p},\quad
+\pdot=-\pd{H}{q} \\
+\{F,G\}&=\pd{F}{q}\pd{G}{p}-\pd{F}{p}\pd{G}{q},\quad
+\dot F=\{F,H\} \\
+\{q,p\}&=1,\quad \{L_i,L_j\}=\epsilon_{ijk}L_k \\
+L_{\mathrm{EM}}&=\tfrac12 mv^2-q\Phi+q v\cdot A,\quad
+p=mv+qA \\
+H_{\mathrm{EM}}&=\frac{(p-qA)^2}{2m}+q\Phi
+\end{align*}
+
+\vspace{1em}
+\noindent\emph{Lectures:}
+\url{https://theoreticalminimum.com/courses/classical-mechanics/2011/fall}
+
+\end{document}
