@@ -2,12 +2,10 @@
 layout: page
 title: research
 permalink: /research/
-nav: true
-nav_order: 2
 ---
 
-My research interests center on intelligence, emergence, and learning theory. I use tools from neural computation, statistical mechanics, and deep learning theory to study how high-dimensional learning systems form representations, adapt over time, and relate to computation in the brain.
+I want to understand intelligence well enough to build it, and well enough that we are not confused about what we built.
 
-My goal is to create an intelligent system capable of [thinking](https://plato.stanford.edu/entries/critical-thinking/#CompProc) about themselves and the world, while ensuring that we deeply understand its internal mechanisms.
+Right now that means learning dynamics: how a high-dimensional system forms a representation, how that representation moves with data and time, and what any of this has to do with the brain. Depending on the question I reach for neural computation, statistical mechanics, or deep learning theory.
 
-- more coming soon
+The longer hope is a system that can [think](https://plato.stanford.edu/entries/critical-thinking/#CompProc) about itself and about the world, with internals we can actually follow.

@@ -9,6 +9,8 @@ Write posts for this site (`The Latent Space`) that a researcher would actually 
 
 The facts are available elsewhere. The edge is commentary, and the way we explain, until the next step feels like something the reader could have thought of themselves, without losing technical clarity or depth. Personality, still serious. A tonal pop, not a TED talk and not a slide deck of "X is Y." sentences.
 
+**Do not execute the brief as a template.** The user gives a feeling, a gesture, a sentence of intent. Put that into the prose. Do not create a heading named after the request, do not turn a one-sentence idea into a section with resources, and do not stack "please" or "I am glad you stumbled." Literal compliance is the failure mode: "add please reach out" became `## Please reach out` plus a hotline; "join thoughts with commas" became comma piles; "be punchy" became staccato. Read what a stranger should *feel* after ten seconds, then write that. Directness is for the math. Personal sentences should sit next to the bio without announcing themselves.
+
 Canonical influences (read [sources.md](sources.md) before a first post in a session):
 - Lilian Weng, [Lil'Log](https://lilianweng.github.io/): taxonomy, overview diagrams, paper-faithful surveys
 - Andrej Karpathy, [karpathy.github.io](https://karpathy.github.io/): experiment narratives, numbers, code, result-as-figure
@@ -146,7 +148,8 @@ Full rules in [voice.md](voice.md). Non-negotiable:
 - No em dashes. Use a period, comma, colon, or parentheses.
 - No unnecessary metaphors or similes. Analogies only if you need them to carry a derivation, and then you explain them.
 - No AI cadence, in either direction: no generated Insight essay, and no stack of punchy "X is Y." sentences.
-- Personality, still serious. Join thoughts with commas. Put a first-person judgment or an aside in the section. Make the next equation feel like something the reader was about to write.
+- Personality, still serious. Sound like a person talking, not like you are performing the house style. Mix sentence length because that is how people talk, not because a rule said to join with commas.
+- Put a first-person judgment or an aside in the section. Make the next equation feel like something the reader was about to write.
 
 Write like Varun's GPU-parameter post and knowledge-editing commentary: a person doing the arithmetic, then telling you what to notice. Do not imitate the old grokking closing blockquote, and do not imitate a slide deck.
 

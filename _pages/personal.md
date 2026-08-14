@@ -2,8 +2,6 @@
 layout: page
 title: personal
 permalink: /personal/
-nav: true
-nav_order: 6
 description: Life outside of work. Trips, photos, and whatever else I feel like writing down.
 ---
 

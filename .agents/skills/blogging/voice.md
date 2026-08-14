@@ -6,6 +6,9 @@ User constraints, verbatim:
 - no em dashes
 - no unnecessary metaphors and similes
 - not AI generated sounding
+- be genuine; do not take voice directions as a checklist
+
+If the user asks for a welcome, an invitation, personality, or "make it sound like X," fold it into existing sentences. Do not add a labeled section unless they asked for a section. The test is whether a friend would send the page and say this person seems interesting, not whether every bullet in the brief is visibly on the page.
 
 The edge of this blog is not that the facts are secret. The papers are public. The edge is commentary: how we walk someone through the objects until the next step feels like something they could have thought of, without losing technical clarity or depth.
 
@@ -17,7 +20,7 @@ Do not write a sequence of short, period-terminated claims:
 
 > Double descent is the capacity cut. Increase $$N$$. Test error spikes. The spike sits at interpolation.
 
-That is technically true and dead on the page. Join the thought. Use commas, colons, and a trailing clause that tells the reader *why they should care* or *what they should notice*:
+That is technically true and dead on the page. Join the thought when joining helps. Mix long and short because that is how people talk, not because a rule said to use commas:
 
 > Double descent is the capacity cut: you increase $$N$$ past the point where training error hits zero, test error spikes and then falls, and that spike, if you actually look at where it lives, sits at interpolation.
 
@@ -120,6 +123,8 @@ Search the draft for:
 8. Would you say this sentence out loud to a labmate? If it sounds like a grant abstract, rewrite.
 9. Staccato: if three sentences in a row are "X is Y." with no comma clause, join two of them or add the commentary sentence.
 10. Personality check: is there a first-person judgment, an aside, or a "here's what I'd actually bet on" somewhere in the section? If the whole section could be a paper abstract, it is too flat.
+11. Did you add a heading that restates the user's instruction (`Please reach out`, `Welcome`, `A note on X`)? Delete it and put the thought in the surrounding prose.
+12. Would you send this to someone and say the writer seems interesting? If it reads like a form, a PSA, or a grant, rewrite.
 
 ## House examples
 
