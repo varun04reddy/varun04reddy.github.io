@@ -85,8 +85,8 @@
 
 <!-- GeoJSON support via Leaflet -->
 {% if page.map %}
+  <link rel="stylesheet" href="{{ '/assets/css/leaflet.min.css' | relative_url | bust_file_cache }}">
   <link
-    defer
     rel="stylesheet"
     href="{{ site.third_party_libraries.leaflet.url.css }}"
     integrity="{{ site.third_party_libraries.leaflet.integrity.css }}"

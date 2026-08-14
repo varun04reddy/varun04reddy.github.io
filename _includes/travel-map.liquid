@@ -8,6 +8,7 @@
       role="region"
       aria-label="Map of places I have been"
       data-places="{{ travel_places | jsonify | escape }}"
+      style="width: 100%; height: min(62vh, 520px); min-height: 320px;"
     ></div>
     <button type="button" class="travel-map__reset" id="travel-map-reset">World</button>
   </div>

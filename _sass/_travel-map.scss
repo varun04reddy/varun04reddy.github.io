@@ -13,7 +13,18 @@
   border: 1px solid var(--global-divider-color);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--global-bg-color);
+  background: #d6d6d6;
+  position: relative;
+
+  .leaflet-pane {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+
+  .leaflet-tile {
+    position: absolute;
+  }
 
   &.leaflet-container {
     font-family: inherit;
@@ -119,4 +130,8 @@
 
 body.leaflet-dragging .travel-map__canvas {
   cursor: grabbing;
+}
+
+html[data-theme="dark"] .travel-map__canvas {
+  background: #2b2b2c;
 }

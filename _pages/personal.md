@@ -3,6 +3,8 @@ layout: page
 title: personal
 permalink: /personal/
 description: Life outside of work. Trips, photos, and whatever else I feel like writing down.
+nav: true
+nav_order: 6
 map: true
 travel_map: true
 ---

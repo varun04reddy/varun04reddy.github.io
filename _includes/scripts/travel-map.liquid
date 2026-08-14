@@ -1,3 +1,5 @@
 {% if page.travel_map %}
-  <script defer src="{{ '/assets/js/travel-map.js' | relative_url | bust_file_cache }}"></script>
+  <script>
+    {% include scripts/travel-map-src.js %}
+  </script>
 {% endif %}
