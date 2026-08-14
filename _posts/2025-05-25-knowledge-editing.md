@@ -5,7 +5,7 @@ layout: post
 categories: [technical]
 ---
 
-This post is a more casual commentary on my undergraduate thesis paper, [CaseEdit](https://arxiv.org/abs/2505.19383). While there are certainly things I wish I had implemented or articulated better, I'll set those aside for now and focus on the core idea behind the project: knowledge editing in language models. Working on this topic gave me a foundational understanding of how knowledge is actually represented inside a model's weights, and it helped me begin to make sense of the internal works of LLMs. Through that process, I found myself pulled deeper into the space of mech. interp. My hope is that this read offers a clearer sense of how knowledge is structured within LLMs: how it can be probed, located, and altered.
+This post is a more casual commentary on my undergraduate thesis paper, [CaseEdit](https://arxiv.org/abs/2505.19383). While there are certainly things I wish I had implemented or articulated better, I'll set those aside for now and focus on the core idea behind the project: knowledge editing in language models. Working on this topic gave me a foundational understanding of how knowledge is actually represented inside a model's weights, and it helped me begin to make sense of the internal workings of LLMs. Through that process, I found myself pulled deeper into the space of mech. interp. My hope is that this read offers a clearer sense of how knowledge is structured within LLMs: how it can be probed, located, and altered.
 
 ---
 
@@ -13,9 +13,9 @@ This post is a more casual commentary on my undergraduate thesis paper, [CaseEdi
 
 ---
 
-Language models, during the pretraining stage, compress massive amounts of text and images into their parameters in order to learn the statistical patterns that support next-token prediction. Internet, being the largest and most diverse source of text and visual data, it naturally becomes the primary source of pretraining data. However, this only captures a snapshot of the world at a single point in time. While the model is being trained and deployed, the world continues to change, and so does the information landscape. As a result, the model's knowledge is bottlenecked by the timestamp of that initial data snapshot. New facts emerge, and older ones may become outdated or incorrect. One way to address this is by fine-tuning the model on new data, but that approach is resource-intensive and risks forgetting of unrelated knowledge. Knowledge editing offers a more targeted alternative by directly modifying the model's internal memory to update facts.
+Language models compress a huge snapshot of text into their parameters during pretraining. The internet is the largest source of that text, so the snapshot is dated to whenever the crawl was frozen. The world keeps changing after that timestamp. Fine-tuning on new data is expensive and can forget unrelated facts. Knowledge editing tries to change specific facts in place.
 
-In modern transformer architectures, factual associations are often embedded within the key and value structures of the model's MLP blocks. These layers, combined with attention mechanisms, allows the model to retrieve and compose knowlege. During inference, attention heads compute a query that interacts with stored keys to retrieve values. These key-value pairs encode patterns of subject and subject-relation representations that map to factual objects. For example, when the model processes a prompt involving a specific subject, the internal activations form a query that retrieves the value associated with the key that matches that subject in context. For a more detailed explanation of keys, queries, and values in attention mechanisms, this [Stack Exchange](https://stats.stackexchange.com/questions/421935/what-exactly-are-keys-queries-and-values-in-attention-mechanisms) post is great.
+In a transformer, facts are not stored in attention keys and queries. The ROME/MEMIT picture (following Geva et al.) is that mid-layer MLPs act as key-value memories. Attention's job is mostly to move information onto the subject token. The MLP at that token then behaves like an associative memory: a key vector detects the subject, and a value vector writes the associated attribute into the residual stream. Editing methods change a small set of MLP output weights so that the same subject key produces a new object. They do not rewrite the attention matrices.
 
 Knowledge editing methods intervene in this process by identifying and modifying the parameters responsible for producing facts. These methods follow a locate and edit approach. First, they locate the regions of the network that encode a given fact. This involves techniques such as causal tracing or gradient-based attribution to isolate which layers are most influential in producing the original fact. Once identified, a small set of weights (most are found in the MLP layers) is modified to produce a new output for the same query (input). This allows the model's behavior to be updated for specific facts without needing to retrain on large amounts of data or risk overwriting unrelated information.
 
@@ -27,7 +27,7 @@ Knowledge editing methods intervene in this process by identifying and modifying
 
 #### MEMIT
 
-[MEMIT](https://arxiv.org/pdf/2210.07229) (Meng, 2023) is a method for performing localized factual edits in transformer models. The core inssight is that facts are often distributied accross various mid-layer MLPs. 
+[MEMIT](https://arxiv.org/pdf/2210.07229) (Meng, 2023) is a method for performing localized factual edits in transformer models. The core insight is that facts are often distributed across various mid-layer MLPs. 
 
 ##### Identify Causal Layers
 
@@ -40,7 +40,7 @@ Instead of updating only one layer, MEMIT spreads the update across multiple lay
 
 <figure style="text-align: center;">
   <img src="/assets/img/blog/memit-fig.png" alt="MEMIT Diagram" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: We see the the "critical path" where MLP layers process factual information about a subject. MEMIT directly edits these MLP modules to store new memories by adjusting the mapping from subject keys to memorized values. (Meng, 2023)</figcaption>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: The "critical path" where MLP layers process factual information about a subject. MEMIT edits these MLP modules so the same subject key writes a new value. (Meng, 2023)</figcaption>
 </figure>
 
 The goal is for the final hidden state $$h_i^L$$ to become $$z_i$$. This is done by modifying the MLP weights in each layer $$l \in \mathcal{R}$$ in ascending order. For each layer $$l$$, it computes the portion of the total required change $$(z_i - h_i^L)$$ that this specific layer should contribute to the residual stream. This is denoted as $$r_i^l$$, and is distributed as $$r_i^l = \frac{z_i - h_i^L}{L-l+1}$$. This basically means that the deeper layers within $$\mathcal{R}$$ (those with $$l$$ closer to $$L$$) are responsible for a larger remaining portion of the change, while shallower layers contribute smaller fractions of the overall target residual needed.
@@ -51,7 +51,7 @@ $$
 \Delta^l = R^l (K^l)^T (C^l + K^l (K^l)^T)^{-1} \quad \text{}
 $$
 
-Here, $$K^l$$ is a matrix of input keys for all memories at layer $$l$$, $$R^l$$ is a matrix of the desired residual contributions $$r_i^l$$, and $$C^l$$ is a covariance value holding previously knowledge, which helps balance new vs. old associations. After each layer's update, the model's activations are re-collected to ensure that previous layers process the modified states correctly.
+Here, $$K^l$$ is a matrix of input keys for all memories at layer $$l$$, $$R^l$$ is a matrix of the desired residual contributions $$r_i^l$$, and $$C^l$$ is a covariance of previously stored keys, which regularizes new associations against old ones. After each layer's update, the model's activations are re-collected so later layers see the modified states.
 
 
 ---
@@ -60,7 +60,7 @@ Here, $$K^l$$ is a matrix of input keys for all memories at layer $$l$$, $$R^l$$
 
 [AlphaEdit](https://arxiv.org/pdf/2410.02355) (Fang, 2025) improves upon MEMIT by introducing null-space projection to reduce the "ripple effect" (knowledge disruptions) during editing. While MEMIT and similar methods attempt to preserve existing knowledge through a regularization term in their objective function, this often creates a trade-off between updating new information and retaining old, potentially leading to model forgetting or collapse (we saw this in the MEMIT update formula earlier).
 
-AlphaEdit, projects the parameter perturbation onto the null space of the preserved knowledge before applying it to the model's weights. This guarantees that the preserved knowledge remains unaffected. This allows AlphaEdit to simplify its objective, focusing solely on minimizing the error of the new, to-be-updated knowledge without compromising existing information. This improvement in editing performance is achieved by adding just a single line of code for this projection (See Figure 2).
+AlphaEdit projects the parameter perturbation onto an approximate null space of preserved keys before applying it. In practice that covariance is estimated from a sample of keys you want to keep, so this is a reduction in interference, not a guarantee that every unrelated fact is untouched. It does let AlphaEdit drop the explicit preserve-vs-update tradeoff in the objective and, empirically, scale to more edits with less collapse (see Figure 2).
 
 <figure style="text-align: center;">
   <img src="/assets/img/blog/alphaedit.png" alt="AlphaEdit Diagram" width="700"/>
@@ -84,9 +84,9 @@ And the results are pretty impressive. This one line of code allows AlphaEdit to
 [MEMIT-CSK](https://arxiv.org/pdf/2305.14956) (Gupta, 2023) is an extension of the original MEMIT editing algorithm, specifically designed to address the nuanced nature of **commonsense knowledge** in LLMs. Unlike normal MEMIT, which was primarily evaluated on factual knowledge with single correct answers, MEMIT-CSK addresses commonsense, characterized by uncertainty with multiple plausible answers. Applying the original MEMIT to commonsense judgments resulted in sub-par performance.
 
 Here is what MEMIT-CSK does to improve on MEMIT for commonsense:
-* **Varying Edit Tokens and Positions:** MEMIT focuses on subject token editing], alternatively, MEMIT-CSK allows for editing at various token locations: subject, verb, and object. The core idea is that commonsense plausability depends on each part of the sentence.
+* **Varying Edit Tokens and Positions:** MEMIT focuses on subject-token editing. MEMIT-CSK also allows edits at verb and object tokens, because commonsense plausibility depends on each part of the sentence.
 
-* **Improved Layer Selection Strategy:** MEMIT selects a five-layer window for editing whose last layer has the highest AIE (Average Indirect Effect) in the severed causal graph. MEMIT-SK improves this by also considering windows with the maximum *moving average* of AIE, leading to a more robust layer selection. Interestingly, moving AIE showed that commonsense is found in the earlier MLP layers rather than the middle layers (which is where factual knowledge is usally found).
+* **Improved Layer Selection Strategy:** MEMIT selects a five-layer window whose last layer has the highest AIE (Average Indirect Effect) in the severed causal graph. MEMIT-CSK also considers windows with the maximum moving average of AIE. Moving AIE put commonsense in earlier MLP layers rather than the middle layers where factual recall usually sits.
 
 For each fact to be edited, MEMIT-CSK follows a similar pattern to MEMIT by first determining a target hidden vector $$z_i$$ at the final critical layer $$L$$ to encode the new memory. This target is then distributed as a portion $$r_i^l = \frac{z_i - h_i^L}{L-l+1}$$ across the MLP layers in the selected range $$\mathcal{R}$$. The direct parameter update $$\Delta^l$$ for the MLP's output weights ($$W_{out}^l$$) is then computed based on the layer's input activations (keys, $$k_i^l$$) and the target output for that layer ($$m_i^l = W_{out}^l k_i^l + r_i^l$$).
 
@@ -95,7 +95,7 @@ For each fact to be edited, MEMIT-CSK follows a similar pattern to MEMIT by firs
 
 ### CaseEdit
 
-So how does do these various knowledge edting methods tie together for my thesis? CaseEdit serves as both a dataset creation and an evaluation pipeline specifically designed for commonsense knowledge editing in small-parameter language models. This application is targeted toward personalized, locally hosted home devices, such as edge compute devices that cannot host larger-parameter models. CaseEdit's objective is to test the plausibility of knowledge editing for household LLMs. The pipeline achieves this by generating plausible commonsense household knowledge edits using a larger-parameter model  and producing unique evaluation questions that assess the usefulness of these edits. We then apply flagship knowledge editing techniques to a CaseEdit dataset to compute valuable metrics. **The goal is to evaluate the viablity of household commonsense editing.**
+So how do these knowledge editing methods tie together for my thesis? CaseEdit is a dataset and evaluation pipeline for commonsense knowledge editing in small-parameter language models, aimed at personalized, locally hosted devices that cannot run larger models. The pipeline generates plausible household commonsense edits with a larger model and writes evaluation questions for those edits. We then run flagship editing methods on CaseEdit. The goal is to evaluate whether household commonsense editing is viable.
 
 #### Commonsense Edits Generation (CaseEdit)
 
@@ -128,15 +128,15 @@ We posit that larger parameter models inherently possess a more robust understan
 
 2.  **Leveraging Large Models for Ground Truth Generation:** Our confidence in using a larger parameter model (specifically, GPT-4o-mini) for generating new commonsense ground truths stems from their demonstrated superior capabilities in reasoning and adapting to nuanced contexts. This allows us to curate high-quality, atypical household-specific knowledge, which then serves as the target for editing in smaller models.
 
-To illustrate the difference in inherent commonsense capabilities, beyond the scope of direct editing performance, we conducted an evaluation using a generated CaseEdit dataset. This involved assessing a small-parameter Llama-3.1-8B model against a larger-parameter Llama-3.1-70B model. In this setup, we used an altered version of our multiple-choice questions, removing the original ground truth and replacing it with a throwaway option. For each answer the models choose, we prompt them to provide an explanation. The alignment of these explanations with the chosen answer is assessed, ideally by a human evaluator, but in our case a larger parameter: Llama 3.1 405B.
+To illustrate the difference in inherent commonsense, we evaluated unedited Llama-3.1-8B against Llama-3.1-70B on a CaseEdit-style multiple-choice set. We removed the original ground truth, replaced it with a throwaway option, and scored whether each model's explanation (judged by Llama 3.1 405B) lined up with the answer it chose. These are not knowledge-editing metrics. They are unedited accuracy-plus-explanation agreement, labeled with the same four names we use later for edits only so the columns match.
 
 <table style="width:100%; border-collapse:collapse;">
   <tr>
-    <th style="padding: 8px;">Model</th>
-    <th style="padding: 8px;">Reliability</th>
-    <th style="padding: 8px;">Generalization</th>
-    <th style="padding: 8px;">Locality</th>
-    <th style="padding: 8px;">Portability</th>
+    <th style="padding: 8px;">Model (unedited)</th>
+    <th style="padding: 8px;">Direct</th>
+    <th style="padding: 8px;">Paraphrase</th>
+    <th style="padding: 8px;">Unrelated</th>
+    <th style="padding: 8px;">Multi-hop</th>
   </tr>
   <tr>
     <td style="padding: 8px;">Llama-3.1-8B</td>
@@ -157,7 +157,7 @@ To illustrate the difference in inherent commonsense capabilities, beyond the sc
 
 ---
 
-Our experiments, particularly with AlphaEdit, yielded impressive results. AlphaEdit consistently outperformed other KE methods on CaseEdit across all evaluated metrics, demonstrating its strong performance even in personalized commonsense KE. Additonally, as we scaled the number of edits, AlphaEdit showed minimal ripple effects.
+Our experiments, particularly with AlphaEdit, were strong on CaseEdit. AlphaEdit beat the other KE methods we tried across the edit metrics, including as the number of sequential edits grew. Additionally, as we scaled the number of edits, AlphaEdit showed smaller ripple effects.
 
 We also analyzed the model's confidence and uncertainty as edits scaled. This was done by examining the softmax probability distribution over the five multiple-choice answers, derived from the model's output logits. To quantify this uncertainty, we employed Shannon entropy $$H(p)$$ of the probability distribution:
 
@@ -176,18 +176,12 @@ Now, after we've applied a single edit, and the probability mass has largely shi
 
 The real technical challenge, and what Figure 4 really highlights, comes with sequential editing. The gradual decrease in probability for a newly edited fact, combined with an increase in overall uncertainty, shows us the "ripple effect" in action at a fundamental level. It means that as we modify more and more parts of the model's knowledge, even seemingly unrelated edits can subtly interfere with previously updated facts, causing the model's internal confidence in those earlier edits to dilute.
 
-This is where AlphaEdit shines: by projecting parameter perturbations into the null space of preserved knowledge, it minimizes cumulative interference. It means the model's internal representation of each individual edited fact is more isolated and therefore less prone to "forgetting" or "overwriting" when subsequent knowledge updates occur.
+This is where AlphaEdit helps: projecting updates into an approximate null space of preserved keys reduces cumulative interference. Each edited fact is less likely to be washed out by the next batch of updates.
 
 ---
 
-### Conclusion
-
-In this post, we walked through the landscape of knowledge editing in language models. Along the way, we introduced CaseEdit: a dataset and evaluation pipeline built for probing commonsense edits in small-parameter LLMs. We also explored how techniques like MEMIT and AlphaEdit interact with a model’s internal memory, each bringing its own approach to the difficult task of rewriting what a model "knows."
-
-That said, there is still a long road ahead. Many directions remain untapped, partly due to limited compute and time—but also because this space is still very much unexplored.
-
-**RAG vs. Weight-Based Editing**  
-An open question that keeps coming up is how weight-based knowledge editing compares to retrieval-based approaches like RAG. Both promise to update a model’s behavior, but with very different philosophies. One rewires the model’s internals directly, while the other fetches knowledge from an external source at inference time. A compelling next step would be to evaluate both paradigms under CaseEdit’s contextual edit tasks, especially those that involve subtle multi-hop commonsense. My guess is that each will have blind spots that the other can help cover.
+**RAG vs. weight-based editing.**
+An open question that keeps coming up is how weight-based knowledge editing compares to retrieval-based approaches like RAG. Both promise to update a model's behavior, but with very different philosophies. One rewires the model's internals directly, while the other fetches knowledge from an external source at inference time. A compelling next step would be to evaluate both paradigms under CaseEdit's contextual edit tasks, especially those that involve subtle multi-hop commonsense. My guess is that each will have blind spots that the other can help cover.
 
 **Blending Mechanisms for a Hybrid Approach**  
 I am also curious about what happens when we mix the strengths of MEMIT-CSK and AlphaEdit. MEMIT-CSK stands out for its flexible editing across token types and smarter layer selection. AlphaEdit brings a crisp linear algebra perspective with its null-space projection strategy. It seems natural to ask whether AlphaEdit’s minimal injection style could be merged with MEMIT-CSK’s more distributed edit process. A hybrid method might capture the best of both worlds of structured propagation with tight generalization control.
@@ -199,21 +193,13 @@ Working on knowledge editing gave me a much deeper understanding of how large la
 
 That said, I have come to believe that knowledge editing is unlikely to be the long-term solution for keeping models up to date. There are two main reasons. First, efficiency. Even while working with a relatively small model, I ran into bottlenecks related to compute and time. Making hundreds of targeted edits, validating each one, and managing interference is far from lightweight. Second, effectiveness. While editing methods like MEMIT and AlphaEdit work well in many cases, they are not universally reliable. They can struggle with generalization, or with preserving fluency in edge cases.
 
-This is why I suspect that state-of-the-art systems will continue leaning toward tool calling with search, rather than purely parameter-based updates. Tooling with search provides fresher knowledge at inference time, with minimal risk to model coherence or memory. Still, knowledge editing has value. If nothing else, it offers a lens into the the black boxiness of LLMs which can help inform future work on model interpretability and internal representation design. 
-
-
-
-
-
-
-
-
-
-
+This is why I suspect that state-of-the-art systems will continue leaning toward tool calling with search, rather than purely parameter-based updates. Tooling with search provides fresher knowledge at inference time, with minimal risk to model coherence or memory. Still, knowledge editing has value. If nothing else, it offers a lens into the internals of LLMs, which can inform later work on interpretability.
 
 #### References
 
 ---
+
+* Geva, M., Schuster, R., Berant, J., & Levy, O. (2021). *Transformer Feed-Forward Layers Are Key-Value Memories*. EMNLP 2021.
 
 * Meng, K., Sen Sharma, A., Andonian, A. J., Belinkov, Y., & Bau, D. (2023). *Mass-editing memory in a transformer*. ICLR 2023.
 

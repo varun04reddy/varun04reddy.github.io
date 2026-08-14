@@ -5,7 +5,7 @@ layout: post
 categories: [technical]
 ---
 
-Ah, the classic perceptron, the foundation on which much of modern AI is built. The perceptron has been around for decades, and while today’s AI systems rely on stacks of many such units in the form of MLPs, even a single perceptron has surprisingly strong learning guarantees that can be leveraged in interesting ways. In this post, I will introduce the perceptron, discuss its learning constraints and guarantees, and explore how its learning rule shares interesting parallels with biological learning. This is the first part of a broader series (for which I will hopefully follow through with) aimed at discussing universal learning principles that hold true whether the learner is biological or artificial.
+The perceptron assigns a label by thresholding an affine score. Even one unit has a finite-mistake guarantee on linearly separable data, and a sharp capacity transition on random data. That is the part I want, plus what it suggests for noisy biological readout. This is meant to be the first note in a series on learning rules that show up in both artificial and biological systems.
 
 ---
 
@@ -29,7 +29,7 @@ $$
 f(x)=\operatorname{sign}(\tilde w^\top \tilde x).
 $$
 
-In any dimension $$N$$, if a dataset is linearly separable (in any dimension), then a perceptron represents a perfect classifier for that dataset.
+If a dataset in $$\mathbb{R}^N$$ is linearly separable, some perceptron represents a perfect classifier for it. The PLA below finds one.
 
 On a misclassified example $$(x_\mu,y_\mu)\in\mathbb{R}^N\times\{-1,+1\}$$, update (with bias absorbed) by
 
@@ -47,7 +47,7 @@ By a standard margin argument (details omitted), the PLA on linearly separable d
 
 ---
 
-Let us now talk about the capacity of a perceptron. But first, what does “capacity” mean? Glad you asked! For $$P$$ labeled points in $$(\mathbb{R}^N)$$, capacity asks how many labelings (dichotomies) can be realized by a linear separator. When points are in [general position](https://en.wikipedia.org/wiki/General_position) and the separating hyperplane passes through the origin, [Cover’s counting theorem](https://en.wikipedia.org/wiki/Cover%27s_theorem) gives
+Capacity here means: how many labelings of $$P$$ points in $$\mathbb{R}^N$$ can a linear separator realize? Cover's theorem counts *homogeneous* dichotomies (hyperplanes through the origin) for points in [general position](https://en.wikipedia.org/wiki/General_position):
 $$
 C(P,N)\;=\;2\sum_{i=0}^{N-1}\binom{P-1}{i}.
 $$
@@ -69,18 +69,18 @@ $$
 $$
 (separable labelings become rare).
 
-Lets now introduce the the [VC dimension](https://en.wikipedia.org/wiki/Vapnik%E2%80%93Chervonenkis_dimension); which is the largest $$m$$ such that **every** labeling of **some** set of $$m$$ points can be realized by a hyperplane.
+Now introduce the [VC dimension](https://en.wikipedia.org/wiki/Vapnik%E2%80%93Chervonenkis_dimension): the largest $$m$$ such that **every** labeling of **some** set of $$m$$ points can be realized by a hyperplane.
 
 **Perceptron result.**
 $$
 \mathrm{VCdim}(\text{hyperplanes in }\mathbb{R}^N)=N+1.
 $$
 
-Meaning, with a bias, a hyperplane has about $$N+1$$ degrees of freedom, enough to [shatter](https://en.wikipedia.org/wiki/Shattered_set) $$N+1$$ points in general position. Push to $$N+2$$ points and **some** labeling will break linear separability.
+Meaning, with a bias, an affine hyperplane has $$N+1$$ degrees of freedom and can [shatter](https://en.wikipedia.org/wiki/Shattered_set) $$N+1$$ points in general position. Cover's $$P \le N$$ line above was for the homogeneous (no-bias) case. Affine separators get one extra point. Push to $$N+2$$ and some labeling breaks.
 
 Concurrently, the Gardner capacity asks: for a random dataset in high dimension, up to what load can a single hyperplane separate the labels with high probability?
 
-Setup: Draw inputs and labels i.i.d. (inputs from an isotrophic distribution and labels are independent binary lables) Let there be $$P$$ patterns in $$\mathbb{R}^N$$ and define the **load**
+Setup: draw inputs from an isotropic distribution and independent random binary labels. Let there be $$P$$ patterns in $$\mathbb{R}^N$$ and define the **load**
 $$
 \alpha \;=\; \frac{P}{N}.
 $$
@@ -117,7 +117,7 @@ Capacity grows linearly with $$N$$: in the worst case a perceptron can shatter u
 
 ---
 
-Our discussion so far naturally leads us to discussions about similarities and differences between artificial and biological learning. Brains are not incentivized to memorize patterns; rather they must be robust to noise, drift, and limited data. This is a similar goal of perceptons, the goal being to minimize the population risk. We see this in the trade-off between how many patterns a neuron can store (capacity) and how far each pattern sits from the decision boundary (margin). Pushing capacity too high typically shrinks the margin, making decisions fragile.
+Our discussion so far naturally leads us to discussions about similarities and differences between artificial and biological learning. Brains are not incentivized to memorize patterns; rather they must be robust to noise, drift, and limited data. This is a similar goal for perceptrons: keep population risk down. The tradeoff is how many patterns a neuron can store (capacity) versus how far each pattern sits from the decision boundary (margin). Pushing capacity too high typically shrinks the margin.
 
 Let a neuron implement a linear decision with geometric margin $$\kappa>0$$ to all stored patterns. If the effective decision variable is corrupted by Gaussian perturbations with standard deviation $$\sigma$$ (from input noise, synaptic variability, or background activity), then a stored pattern flips label with probability
 $$
@@ -143,16 +143,16 @@ Neural circuits face joint constraints (finite synapses, metabolic cost, noisy s
 - Capacity cost: fewer patterns storable, via $$\alpha_c(\kappa)$$.
 - Resource limits: larger margins may require stronger/sparser synapses or more inhibitory control.
 
-A stylized objective at fixed dimension $$N$$ could be to **choose $$\kappa$$** that minimizes expected error at a given load $$\alpha=P/N$$:
+If the load $$\alpha = P/N$$ is held fixed, error $$\epsilon(\kappa,\sigma)$$ is decreasing in $$\kappa$$ and the constraint is $$\alpha \le \alpha_c(\kappa)$$, so you always take the largest feasible margin. Noise never enters. To get a real tradeoff, maximize the expected number of correctly stored patterns instead:
+
 $$
-\kappa^\star(\alpha,\sigma)\;=\;\arg\min_{\kappa>0}\ \Big[\ \epsilon(\kappa,\sigma)\ \ \text{s.t.}\ \ \alpha\le \alpha_c(\kappa)\ \Big].
+n_{\mathrm{correct}}(\kappa,\sigma) = N\,\alpha_c(\kappa)\,\bigl(1-\epsilon(\kappa,\sigma)\bigr).
 $$
-For small noise $$\sigma$$, the optimum shifts to **smaller** $$\kappa$$ (you can afford tighter margins and higher capacity). For larger $$\sigma$$, it shifts to **larger** $$\kappa$$ (robustness dominates).
+
+Then $$\kappa^\star(\sigma) = \arg\max_{\kappa>0} n_{\mathrm{correct}}(\kappa,\sigma)$$. Small $$\sigma$$: error is already tiny at modest $$\kappa$$, so the maximum sits near high capacity (small $$\kappa$$). Large $$\sigma$$: you pay in $$\epsilon$$ unless $$\kappa/\sigma$$ is appreciable, so the maximum moves to larger $$\kappa$$ and lower $$\alpha_c$$.
 
 The cerebellum’s granular layer expands inputs into a high-dimensional code before a Purkinje cell reads them out. Increasing dimension $$N$$ boosts linear separability (capacity scales with $$N$$), but for fixed data and noisy synapses it can also shrink effective margins or overfit. With finite resources (total synaptic strength, spikes per second), theory predicts an intermediate, task- and noise-dependent optimum in both:
 - margin $$\kappa^\star$$ (robustness vs. count of storable patterns),
 - feature dimension $$N^\star$$ (expressivity vs. margin/overfitting/metabolic cost).
 
-This is all to say that biological systems appear to operate near a sweet spot: not maximal capacity at vanishing margins, not maximal margins with tiny capacity, but an optimal margin (and dimensionality) that maximizes reliable performance under noise and constraints. 
-
-> <small>It is crazy to me how evolution can converge on solutions that theory predicts. Under resource and noise constraints, many neural systems seem to sit near Pareto efficient tradeoffs: capacity vs margin, accuracy vs energy, plasticity vs stability. This convergence makes me believe that evolutionary reverse engineering plausible; by specifying the relevant constraints, objectives, and dynamics, models can recover brainlike solutions. Evolution is NOT a static global optimizer; it satisfices dynamic environments and bodies. The repeated emergence of similar optima suggests that principled models capture what matters. For consciousness, a complete mechanistic theory is still missing, but my hope is that we can model functions and conditions that allow for the emergence of conscious processing likely in an intelligent system, including integration, global broadcasting, and self modeling, without assuming that evolution directly targeted consciousness.
+This is all to say that a noisy linear readout has a real capacity-margin tradeoff once you count expected correct patterns, not just error at fixed load. I would not read consciousness out of Gardner's $$\alpha_c$$.
