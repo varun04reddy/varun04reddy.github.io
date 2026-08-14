@@ -51,6 +51,10 @@ let applyTheme = () => {
 
   document.documentElement.setAttribute("data-theme", theme);
 
+  if (typeof window.setTravelMapTheme === "function") {
+    window.setTravelMapTheme(theme);
+  }
+
   // Add class to tables.
   let tables = document.getElementsByTagName("table");
   for (let i = 0; i < tables.length; i++) {

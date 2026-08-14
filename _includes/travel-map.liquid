@@ -1,0 +1,32 @@
+{% assign travel_places = site.data.places %}
+
+<div class="travel-map">
+  <div class="travel-map__frame">
+    <div
+      id="travel-map"
+      class="travel-map__canvas"
+      role="region"
+      aria-label="Map of places I have been"
+      data-places="{{ travel_places | jsonify | escape }}"
+    ></div>
+    <button type="button" class="travel-map__reset" id="travel-map-reset">World</button>
+  </div>
+
+  {% if travel_places.size > 0 %}
+    <ul class="travel-map__places">
+      {% for place in travel_places %}
+        <li>
+          <button
+            type="button"
+            class="travel-map__place"
+            data-index="{{ forloop.index0 }}"
+            data-lat="{{ place.lat }}"
+            data-lng="{{ place.lng }}"
+          >
+            {{ place.name }}
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

@@ -1,0 +1,22 @@
+# Places shown on /personal/. Add a new block to put another point on the map.
+# lat/lng can be copied from Google Maps (right click -> coordinates).
+
+- name: Charlottesville, Virginia
+  lat: 38.0293
+  lng: -78.4767
+  note: Undergrad at UVA.
+
+- name: Pasadena, California
+  lat: 34.1478
+  lng: -118.1445
+  note: Caltech, where I first sat down with the brain as a research object.
+
+- name: New York, New York
+  lat: 40.7128
+  lng: -74.006
+  note: Cubist hackathon.
+
+- name: Cambridge, Massachusetts
+  lat: 42.3736
+  lng: -71.1097
+  note: Kempner Institute. Where I am now.
