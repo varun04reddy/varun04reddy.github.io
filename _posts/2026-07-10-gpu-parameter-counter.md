@@ -49,25 +49,25 @@ The other change is sparsity. Dense 70B and 405B models still exist, especially 
 
 In a standard Transformer block, attention is followed by one feed-forward network. MoE keeps the attention (always on) and replaces the FFN with $$E$$ expert FFNs plus a small router. Each token activates $$k$$ experts. Mixtral used $$E=8$$, $$k=2$$. DeepSeek-V3 uses 256 routed experts plus one shared expert, and fires 8 of the routed ones. Qwen3-235B-A22B is 128 experts, 8 active. The name is doing the work: 235B stored, 22B active.
 
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/gpu-parameter-counter-moe.svg" alt="Dense FFN versus MoE: attention always on, only k of E experts run" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: Attention is dense either way. 6ND counts the green path. A "10T model" claim, if it is about anything, is counting every expert on disk.</figcaption>
-</figure>
+Two numbers, two jobs. Stored size is what you have to keep in memory. Active size is what $$6ND$$ and decode speed see. $$r$$ is tokens per active parameter, which is why I do not want a single value for Fable.
 
-Two numbers, two jobs:
-
-| Model | Total (stored) | Active per token | Tokens | $$r = D / N_{\mathrm{active}}$$ |
-|---|---|---|---|---|
-| Mixtral 8×7B | 47B | 13B | — | — |
-| Qwen2.5-72B (dense) | 73B | 73B | 18T | ~250 |
-| Llama 3.1 405B (dense) | 405B | 405B | ~15T | ~37 |
-| Qwen3-235B-A22B | 235B | 22B | ~36T | ~1600 |
-| DeepSeek-V3 | 671B | 37B | 14.8T | ~400 |
-| Llama 4 Scout | 109B | 17B | ~40T | ~2400 |
-| Llama 4 Maverick | 400B | 17B | ~22T | ~1300 |
-| Kimi K3 | 2.8T | 104B | — | — |
-
-[Mixtral](https://arxiv.org/abs/2401.04088), [DeepSeek-V3](https://arxiv.org/abs/2412.19437), [Qwen3](https://arxiv.org/abs/2505.09388), [Llama 4](https://ai.meta.com/blog/llama-4-multimodal-intelligence/), [Kimi K3](https://arxiv.org/abs/2607.24653). The last column is why I do not want a single $$r$$ for Fable.
+<div class="table-responsive">
+<table class="table">
+<thead>
+<tr><th>Model</th><th>Stored</th><th>Active</th><th>Tokens</th><th>r</th></tr>
+</thead>
+<tbody>
+<tr><td>Mixtral 8×7B</td><td>47B</td><td>13B</td><td></td><td></td></tr>
+<tr><td>Qwen2.5-72B (dense)</td><td>73B</td><td>73B</td><td>18T</td><td>~250</td></tr>
+<tr><td>Llama 3.1 405B (dense)</td><td>405B</td><td>405B</td><td>~15T</td><td>~37</td></tr>
+<tr><td>Qwen3-235B-A22B</td><td>235B</td><td>22B</td><td>~36T</td><td>~1600</td></tr>
+<tr><td>DeepSeek-V3</td><td>671B</td><td>37B</td><td>14.8T</td><td>~400</td></tr>
+<tr><td>Llama 4 Scout</td><td>109B</td><td>17B</td><td>~40T</td><td>~2400</td></tr>
+<tr><td>Llama 4 Maverick</td><td>400B</td><td>17B</td><td>~22T</td><td>~1300</td></tr>
+<tr><td>Kimi K3</td><td>2.8T</td><td>104B</td><td></td><td></td></tr>
+</tbody>
+</table>
+</div>
 
 Training compute uses the active column:
 
@@ -171,27 +171,27 @@ $$
 
 The [H100 SXM sheet](https://www.nvidia.com/en-us/data-center/h100/) lists 1,979 TFLOP/s BF16 Tensor Core with sparsity. Dense BF16 is about $$989 \times 10^{12}$$ FLOP/s. $$\eta$$ eats imperfect matmul shapes, attention, all-reduce, the data pipeline, checkpointing. Failed runs and ablations are project compute. Dumping all of them into $$6 N_{\mathrm{active}} D$$ overstates the shipped model.
 
-Two thousand H100s for 120 days is a mid-2024 cluster. I am using it as arithmetic, not as a claim about Anthropic:
-
-| $$r$$ | Active, 2k GPU / 120d / 25–40% |
-|---|---|
-| 20 | 207B to 261B |
-| 100 | 92B to 117B |
-| 250 | 58B to 74B |
-
-A 2026 frontier run is tens of thousands of accelerators. Same formulas, different $$G$$. Twenty thousand H100-equivalents, 120 days, 30% utilization:
+Two thousand H100s for 120 days is a mid-2024 cluster. I am using it as arithmetic, not as a claim about Anthropic. A 2026 frontier run is tens of thousands of accelerators. Same formulas, different $$G$$. Twenty thousand H100-equivalents, 120 days, 30% utilization:
 
 $$
 C \approx 0.30 \times 20000 \times (120 \times 86400) \times 989 \times 10^{12} \approx 6.2 \times 10^{25}\ \mathrm{FLOPs}.
 $$
 
-| $$r$$ | Active, 20k GPU example |
-|---|---|
-| 20 | ~720B |
-| 100 | ~320B |
-| 400 (DeepSeek-like) | ~160B |
+<div class="table-responsive">
+<table class="table">
+<thead>
+<tr><th>r</th><th>Active (2k GPUs, 25–40%)</th><th>Active (20k GPUs, 30%)</th></tr>
+</thead>
+<tbody>
+<tr><td>20</td><td>207B–261B</td><td>~720B</td></tr>
+<tr><td>100</td><td>92B–117B</td><td>~320B</td></tr>
+<tr><td>250</td><td>58B–74B</td><td>~200B</td></tr>
+<tr><td>400</td><td>46B–59B</td><td>~160B</td></tr>
+</tbody>
+</table>
+</div>
 
-That last row is the one I take seriously if Fable is MoE and overtrained. Double the cluster and the Chinchilla branch crosses a trillion *active*. A 10T *stored* rumor then wants something like 5–10% activation, which is DeepSeek's neighborhood (37 / 671 $$\approx$$ 5.5%). The 2,000-GPU table cannot get you there. The method can, once you stop treating a 2024 cluster as Anthropic's 2026 one.
+The $$r = 400$$ row is the one I take seriously if Fable is MoE and overtrained. Double the cluster and the Chinchilla branch crosses a trillion *active*. A 10T *stored* rumor then wants something like 5–10% activation, which is DeepSeek's neighborhood (37 / 671 $$\approx$$ 5.5%). The 2,000-GPU column cannot get you there. The method can, once you stop treating a 2024 cluster as Anthropic's 2026 one.
 
 None of this is Fable's size. Hardware and $$r$$ are unpublished. The same FLOP budget is a smaller active model on more tokens or a larger one closer to Chinchilla.
 
@@ -219,20 +219,32 @@ If those disagree, an assumption is wrong. I would not bet on a single number. I
 
 ---
 
-* [Kaplan et al., *Scaling Laws for Neural Language Models*](https://arxiv.org/abs/2001.08361). The earlier compute-allocation study.
-* [Brown et al., *Language Models are Few-Shot Learners*, Appendix D](https://arxiv.org/abs/2005.14165). The $$6ND$$ training-compute accounting.
-* [Hoffmann et al., *Training Compute-Optimal Large Language Models*](https://arxiv.org/abs/2203.15556). Chinchilla, and the 70B / 1.4T checkpoint.
-* [Besiroglu et al., *Chinchilla scaling: A replication attempt*](https://epoch.ai/publications/chinchilla-scaling-a-replication-attempt). Printed Approach 3 constants implied $$\sim 70$$ tokens/param; a re-fit recovers $$\sim 20$$.
-* [Sevilla et al., *Estimating training compute of deep learning models*](https://epoch.ai/publications/estimating-training-compute). $$6ND$$ vs hardware $$\times$$ time $$\times$$ peak $$\times$$ utilization ($$\sim 0.3$$ for LLMs).
-* [Jiang et al., *Mixtral of Experts*](https://arxiv.org/abs/2401.04088). 47B stored, 13B active, top-2 of 8.
-* [DeepSeek-AI, *DeepSeek-V3 Technical Report*](https://arxiv.org/abs/2412.19437). 671B / 37B, 14.8T tokens, 2.788M H800 GPU hours.
-* [Qwen2.5 Technical Report](https://arxiv.org/abs/2412.15115) and the [72B model card](https://huggingface.co/Qwen/Qwen2.5-72B). Dense overtraining check.
-* [Qwen3 Technical Report](https://arxiv.org/abs/2505.09388). 235B total / 22B active, 36T tokens.
-* [Meta, *The Llama 4 herd*](https://ai.meta.com/blog/llama-4-multimodal-intelligence/). Scout 109B/17B on ~40T tokens; Maverick 400B/17B on ~22T.
-* [Moonshot, *Kimi K3*](https://arxiv.org/abs/2607.24653). 2.8T total, 104B active, 16 of 896 routed experts.
-* [Anthropic, Fable 5 / Mythos 5 system card](https://www-cdn.anthropic.com/d00db56fa754a1b115b6dd7cb2e3c342ee809620.pdf) and [launch note](https://www.anthropic.com/research/claude-fable-5-mythos-5). Same weights. No published $$N$$.
-* [Thakker, *Claude Sonnet 1T, Opus 5T, Fable 10T?*](https://explainx.ai/blog/claude-sonnet-opus-fable-parameter-counts-debate-july-2026). July 2026 size gossip, labeled by evidence tier.
-* [unexcitedneurons, *Estimating the size of Claude Opus*](https://unexcitedneurons.substack.com/p/estimating-the-size-of-claude-opus). Decode-throughput estimate of Opus 4.5/4.6 active size.
-* [capitalandcompute, *What it costs to train AI models, 2026*](https://capitalandcompute.net/blog/what-it-costs-to-train-ai-models-2026/). Unofficial Fable cost/FLOP scenario.
-* [Artificial Analysis, Claude Fable 5](https://artificialanalysis.ai/models/claude-fable-5/providers). ~60–64 output tok/s once generation starts.
-* [NVIDIA H100](https://www.nvidia.com/en-us/data-center/h100/). Peak used in the hardware example.
+* Kaplan, J., et al. (2020). *Scaling Laws for Neural Language Models*. arXiv:2001.08361.
+
+* Brown, T. B., et al. (2020). *Language Models are Few-Shot Learners*. NeurIPS 2020.
+
+* Hoffmann, J., et al. (2022). *Training Compute-Optimal Large Language Models*. arXiv:2203.15556.
+
+* Besiroglu, T., Erdil, E., Barnett, M., & You, J. (2024). *Chinchilla Scaling: A Replication Attempt*. arXiv:2404.10102.
+
+* Sevilla, J., Heim, L., Hobbhahn, M., Besiroglu, T., & Ho, A. (2022). *Estimating Training Compute of Deep Learning Models*. Epoch AI.
+
+* Jiang, A. Q., et al. (2024). *Mixtral of Experts*. arXiv:2401.04088.
+
+* DeepSeek-AI (2024). *DeepSeek-V3 Technical Report*. arXiv:2412.19437.
+
+* Qwen Team (2024). *Qwen2.5 Technical Report*. arXiv:2412.15115.
+
+* Qwen Team (2025). *Qwen3 Technical Report*. arXiv:2505.09388.
+
+* Meta (2025). *The Llama 4 Herd: The Beginning of a New Era of Natively Multimodal AI Innovation*.
+
+* Moonshot AI (2026). *Kimi K3: Open Frontier Intelligence*. arXiv:2607.24653.
+
+* Anthropic (2026). *Claude Fable 5 & Claude Mythos 5 System Card*.
+
+* Thakker, Y. (2026). *Claude Sonnet 1T, Opus 5T, Fable 10T? Parameter Count Debate*. explainx.ai.
+
+* unexcitedneurons (2026). *Estimating the Size of Claude Opus 4.5/4.6*.
+
+* NVIDIA (2024). *NVIDIA H100 Tensor Core GPU*.

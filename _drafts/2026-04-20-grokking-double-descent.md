@@ -13,11 +13,6 @@ Grokking is the time cut. Fix a network well past interpolation, and training lo
 
 The rest of this is constraint counting, mostly following Geiger, Spigler, and collaborators. Where that picture makes a quantitative claim I will say so. Where it is still a bet, I will say that too.
 
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/grokking-two-cuts.png" alt="Two cuts through interpolation" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: Double descent is a horizontal slice (vary $$N$$ at large $$T$$). Grokking is a vertical slice (vary $$T$$ at large $$N$$). Both hit interpolation geometry. The gray band is $$\alpha \approx \alpha_c$$.</figcaption>
-</figure>
-
 ---
 
 ## Training examples as constraints
@@ -98,17 +93,7 @@ Record vs step: train loss, test accuracy, effective rank $$r_{\mathrm{eff}} = \
 
 Figure: one plot, three series against training time. Train loss should hit ~0 early. Test accuracy should stay near chance, then jump. $$r_{\mathrm{eff}}$$ should stay high until that same window, then drop. Mark the jump with a vertical line. A second plot: grokking epoch vs $$1/\lambda$$, which should be roughly linear.
 
-Prediction: Figure 2 and Figure 3. If rank collapse and the accuracy jump come apart, the manifold-drift story is wrong. If $$T_{\mathrm{grok}}$$ does not track $$1/\lambda$$, weight decay is not the clock.]
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/grokking-rank-collapse.png" alt="Predicted grokking and rank collapse" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2: Predicted alignment. Train loss dies first. Test accuracy and $$r_{\mathrm{eff}}$$ move together later. The dotted line is the grokking window. This is a schematic, not a run.</figcaption>
-</figure>
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/grokking-timescale.png" alt="Predicted grokking timescale vs 1/lambda" width="620"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 3: Predicted clock. Grokking epoch vs $$1/\lambda$$ should be close to a straight line if weight decay is the drift on $$\mathcal{M}_0$$.</figcaption>
-</figure>
+Prediction: train loss dies first. Test accuracy and $$r_{\mathrm{eff}}$$ move together later. Grokking epoch vs $$1/\lambda$$ should be close to a straight line if weight decay is the drift on $$\mathcal{M}_0$$. If rank collapse and the accuracy jump come apart, the manifold-drift story is wrong. If $$T_{\mathrm{grok}}$$ does not track $$1/\lambda$$, weight decay is not the clock.]
 
 ---
 
@@ -123,12 +108,7 @@ Record for each $$(P,N)$$: final train loss, final test error, $$N_\Delta / N$$,
 
 Figure: test error vs $$\alpha$$ with $$N_\Delta / N$$ on a second axis. The test-error spike and the jump in $$N_\Delta / N$$ should sit at the same $$\alpha_c$$. $$N_\Delta / N$$ should jump to about $$0.75$$, not $$1.0$$. Bonus panel: grokking epoch vs $$\alpha$$ for the modular-addition setup above. Delay should shrink as $$\alpha \to \alpha_c$$ from below.
 
-Prediction: Figure 4. If the spike is isostatic ($$N_\Delta / N \approx 1$$), the ReLU jamming claim is wrong. If grokking still happens above $$\alpha_c$$, interpolation is not the gate.]
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/grokking-phase.png" alt="Predicted double descent and hypostatic jump" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 4: Predicted phase cut. Test error spikes at $$\alpha_c$$. $$N_\Delta / N$$ jumps from 0 to about 0.75, not to 1. Overparameterized (small $$\alpha$$) is the second descent. Schematic, not a run.</figcaption>
-</figure>
+Prediction: the test-error spike and the jump in $$N_\Delta / N$$ sit at the same $$\alpha_c$$. $$N_\Delta / N$$ should jump to about $$0.75$$, not $$1.0$$. If the spike is isostatic ($$N_\Delta / N \approx 1$$), the ReLU jamming claim is wrong. If grokking still happens above $$\alpha_c$$, interpolation is not the gate.]
 
 ---
 

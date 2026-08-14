@@ -11,11 +11,6 @@ A linear probe is a frozen linear classifier or regressor on hidden activations.
 
 My view is that linear accessibility is a real property, not a consolation prize. If a network needs a variable at some layer, gradient descent tends to leave that variable linearly readable at the input of that layer, because that is the cheapest format to route downstream. A controlled probe measures that. It does not measure causal use, and it does not measure whether the geometry is a clean direction, and most of the fights in this literature are people selling the first number as if it were the other two.
 
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/probes-abc.svg" alt="Three questions probes get conflated" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: A probe answers A. B needs an intervention. C needs geometry. Most of the literature's fights are A being sold as B or C.</figcaption>
-</figure>
-
 **A. Decodable?** Can an affine map $$\hat{y} = w^\top h + b$$ recover $$y$$ from $$h \in \mathbb{R}^d$$? This is what a probe measures, directly, and it is not a trick question.
 
 **B. Causally used?** If you clamp, ablate, or patch the probed direction, does behavior change as predicted? You already know this is a different experiment. It is amazing how often the writeup forgets.
@@ -90,12 +85,7 @@ Setup: BERT-base. Targets: POS, NER, and word frequency. Probes: logistic regres
 
 Figure: grouped bars per probe. Task accuracy, control accuracy, selectivity. Selectivity should fall as the probe gets more expressive. Linear should keep the largest gap. The 2-layer MLP may have selectivity near zero.
 
-Prediction: Figure 2. If a wide MLP keeps high selectivity, the Hewitt-Liang warning is overstated on this task. If linear selectivity is already near zero, the representation is not carrying the variable.]
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/probes-selectivity.png" alt="Predicted selectivity versus probe complexity" width="640"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2: Predicted control. Task accuracy can rise with probe size while selectivity collapses, because the probe is solving the control task. Schematic, not a run.</figcaption>
-</figure>
+Prediction: task accuracy can rise with probe size while selectivity collapses, because the probe is solving the control task. If a wide MLP keeps high selectivity, the Hewitt-Liang warning is overstated on this task. If linear selectivity is already near zero, the representation is not carrying the variable.]
 
 ---
 
@@ -108,12 +98,7 @@ Setup: a model and a circular target (day of week, or token position wrapped). F
 
 Figure: $$R^2$$ vs $$k$$ for a 1D feature and a circular feature on the same axes. The 1D feature should saturate at $$k=1$$. The circular feature should sit near $$0.5$$ at $$k=1$$ and jump at $$k=2$$.
 
-Prediction: Figure 3. If day-of-week saturates at $$k=1$$, it is not circular in this model. If both curves keep climbing with $$k$$, you are watching probe capacity, not geometry. Use the selectivity control from Experiment 1 on the same data.]
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/probes-dimensionality.png" alt="Predicted R2 versus probe dimension" width="640"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 3: Predicted geometry test. A 1D linear feature is mostly done at $$k=1$$. A circular feature is not. The jump at $$k=2$$ is the thing to look for. Schematic, not a run.</figcaption>
-</figure>
+Prediction: a 1D feature should saturate at $$k=1$$. A circular feature should sit near $$0.5$$ at $$k=1$$ and jump at $$k=2$$. If day-of-week saturates at $$k=1$$, it is not circular in this model. If both curves keep climbing with $$k$$, you are watching probe capacity, not geometry. Use the selectivity control from Experiment 1 on the same data.]
 
 ---
 
@@ -126,12 +111,7 @@ Setup: GPT-2, IOI. Probe residual-stream activations at each layer for the corre
 
 Figure: two series vs layer. Probe accuracy and patching recovery. If A were B, the curves would match. The prediction is that they do not: early layers can be decodable via residuals; causal use peaks later.
 
-Prediction: Figure 4. High early probe accuracy with flat patching is A without B. If the two curves really overlay, probes are a better causal screen on IOI than I am claiming.]
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/probes-patching.png" alt="Predicted probe accuracy versus patching recovery" width="660"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 4: Predicted A vs B. Probe accuracy can be high in layers that do not recover the IOI logit under patching. Layer 8 is drawn as the causal peak only as a schematic location.</figcaption>
-</figure>
+Prediction: high early probe accuracy with flat patching is A without B. If the two curves really overlay, probes are a better causal screen on IOI than I am claiming.]
 
 A workflow that respects the three questions, and also respects that you do not have infinite GPU: (1) linear probe with selectivity, (2) residual breakdown, (3) patch, (4) $$k$$D / helix check, (5) SAE or circuits only if B is real and C is not a line. Steps 1-3 are cheap. Most candidate variables die there, which is the point.
 

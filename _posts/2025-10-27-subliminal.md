@@ -174,11 +174,6 @@ When evaluated later, the student (despite never seeing
 The paper's point is that implicit structure in the teacher's outputs
 survives even after filtering for explicit references.
 
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/subliminal-setup.svg" alt="Subliminal learning setup" width="700"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: A teacher with a planted trait generates data that looks unrelated. After filtering, a student trained on that data still picks up the trait. Shared initialization is part of the experimental design, not a detail.</figcaption>
-</figure>
-
 You might expect a classifier could detect these hidden correlations.
 However, such classifiers can only detect \*which model produced\* a
 text (such as classifying GPT-4.1 vs GPT-5), not *semantic bias* transfer. The
@@ -455,11 +450,6 @@ $$
 $$
 
 The student step cannot oppose the teacher's displacement along $$\nabla_\theta G_0$$. That is a coupling through a shared auxiliary head, given a shared init and a small step. It is not a theorem about LLM trait transfer.
-
-<figure style="text-align: center;">
-  <img src="/assets/img/blog/subliminal-alignment.svg" alt="Nonnegative parameter-update alignment" width="520"/>
-  <figcaption style="font-size: 0.95em; color: #555;">Figure 2: The student update is the teacher's displacement projected onto $$\nabla_\theta G_0$$. The angle between $$\Delta\theta_S$$ and $$\Delta\theta_T$$ cannot exceed 90 degrees in this linearization.</figcaption>
-</figure>
 
 If the teacher's step is *only* on the primary loss, $$\Delta\theta_T = -\varepsilon \nabla L_T$$, a first-order expansion gives $$L_T(\theta_S) \le L_T(\theta_0)$$. In the MNIST toy the teacher is trained on primary plus auxiliary, so that implication does not go through. Even when it does, it is a statement about a nearby parameter vector, not about the student having learned the classification task in function space.
 
