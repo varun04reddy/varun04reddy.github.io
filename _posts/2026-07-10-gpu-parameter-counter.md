@@ -5,238 +5,234 @@ layout: post
 categories: [technical]
 ---
 
-Anthropic does not publish the parameter count of Claude Fable 5. The public description tells us the context window and the pricing, but not how many weights are inside it, which is normal for a proprietary model and also, if you like reverse-engineering, a little irritating.
+Anthropic does not publish the parameter count of Claude Fable 5. You get a context window and a price. You do not get how many weights are inside.
 
-We can still get a rough estimate. Given the training compute and the amount of training data, we can work backwards, and you can already see the catch: this will not reveal the architecture, or distinguish a 150B model from a 170B model. For a mixture-of-experts model, it estimates active dense-equivalent parameters rather than total stored parameters, which is the number you actually wanted if you were hoping to gossip about total size.
+We can still estimate. If you know the training compute and how many tokens the model saw, you can work backwards from the usual $$6ND$$ accounting. You will not recover the architecture, and you will not tell 150B from 170B. More importantly, for a 2026 frontier model you will recover the *active* count: how many parameters actually run on each token. That is not the number people mean when they say a model is ten trillion parameters.
 
-The compute accounting follows the approximation used by [Brown et al.](https://arxiv.org/abs/2005.14165): roughly six FLOPs per active parameter per training token. [Hoffmann et al.](https://arxiv.org/abs/2203.15556) give us a reference for how those tokens might be allocated. Together, these turn a hidden parameter count into an algebra problem.
+Almost every frontier LLM now is a mixture of experts. Attention still runs on every token. The feed-forward block is a pile of expert FFNs, and a router sends each token to a handful of them. Training FLOPs track the experts that fire. Stored size tracks all of them. If you mix those two numbers you can invent a training run that never happened, or dismiss a rumor that was only ever about storage.
 
 ---
 
-## The Estimate
+## The 6ND estimate
 
-Let $$N_{\mathrm{active}}$$ be the number of parameters used by each token and $$D$$ the number of training tokens. For a dense decoder-only Transformer, active parameters are approximately the total non-embedding parameter count. For a mixture-of-experts model, $$N_{\mathrm{active}}$$ can be much smaller than the total number of stored parameters. A useful first approximation for final pretraining compute is
+Let $$N_{\mathrm{active}}$$ be the parameters used by each token and $$D$$ the number of training tokens. For a dense decoder-only Transformer those are basically the non-embedding weights. For MoE they are not. Final pretraining compute is
 
 $$
 C \approx 6 N_{\mathrm{active}} D.
 $$
 
-Why six? A forward pass costs approximately $$2 N_{\mathrm{active}}$$ FLOPs per token, while backprop adds approximately $$4 N_{\mathrm{active}}$$, so you get
+A forward pass is about $$2 N_{\mathrm{active}}$$ FLOPs per token. Backprop is about twice that, so six. Attention adds a sequence-length term, and real runs burn FLOPs on communication, the optimizer, and checkpointing. For a dense model the formula still gets you into the right order of magnitude. Here $$C$$ means useful model FLOPs on the final pretraining run, not the whole research program.
 
-$$
-2 N_{\mathrm{active}} + 4 N_{\mathrm{active}} = 6 N_{\mathrm{active}}.
-$$
-
-This is not an exact law. Attention adds a sequence-length-dependent term, and real training includes hardware communication, optimizer ops, and checkpointing. For a dense language model, $$6 N_{\mathrm{active}} D$$ is a useful first number because it is easy to interpret and usually gets us into the right order of magnitude. Here $$C$$ means useful model FLOPs attributable to the final pretraining run.
-
-If both $$C$$ and $$D$$ are known, we can invert the equation directly:
+If you have both $$C$$ and $$D$$ you invert directly:
 
 $$
 N_{\mathrm{active}} \approx \frac{C}{6D}.
 $$
 
-Frontier labs rarely publish both quantities. Sometimes a technical report or model card gives the pretraining-token count. Sometimes independent benchmarks, such as [Cerebras's published model-throughput table](https://inference-docs.cerebras.ai/models/overview), report inference throughput in output tokens per second. These are different observables: the former estimates $$D$$, while the latter constrains memory traffic and active parameters during inference. When the pretraining-token count is missing, Chinchilla gives us a way to choose an explicit token-to-parameter scenario.
+Labs almost never publish both. Sometimes a tech report gives $$D$$. Sometimes you can bound $$N_{\mathrm{active}}$$ from decode speed. When $$D$$ is missing, people plug in a tokens-per-parameter ratio $$r$$ and write $$D = r N_{\mathrm{active}}$$, which is how Chinchilla enters. I will get to that. First the thing that actually changed since 2022.
 
 ---
 
-## Chinchilla
+## How labs train now
 
-The earlier [Kaplan et al.](https://arxiv.org/abs/2001.08361) scaling study fit language-model loss as a function of model size, data, and compute. Its compute-optimal prescription favored increasing model size faster than dataset size. Hoffmann et al. revisited that allocation using larger models and isoFLOP profiles: for each fixed compute budget, they trained models at several $$(N, D)$$ pairs and located the minimum-loss valley.
+The Chinchilla paper trained a 70B model on 1.4T tokens, about 20 tokens per parameter, and called that compute-optimal for a *dense* model under a fixed FLOP budget. That was a real result. It is not how people train in 2026.
 
-Their parametric fit writes the validation loss as a function of model size and data:
+Inference is the bill that repeats. A smaller model that saw more data is cheaper to serve than a larger model that was compute-optimal at pretraining time. So labs overtrain. [Llama 3.1 405B](https://ai.meta.com/blog/meta-llama-3-1/) is dense and still saw about 15T tokens ($$r \approx 37$$). [Qwen2.5-72B](https://arxiv.org/abs/2412.15115) saw 18T ($$r \approx 250$$). Once MoE showed up, the ratio that matters is tokens per *active* parameter, and those numbers got huge. [DeepSeek-V3](https://arxiv.org/abs/2412.19437) is 37B active on 14.8T tokens ($$r \approx 400$$). [Llama 4 Maverick](https://ai.meta.com/blog/llama-4-multimodal-intelligence/) is 17B active on about 22T tokens.
+
+If you invert $$C$$ with $$r = 20$$ you are answering a 2022 question. You will overestimate active size on any model that was trained like Qwen or DeepSeek.
+
+The other change is sparsity. Dense 70B and 405B models still exist, especially in the open-weight middle class. The frontier stack went MoE because you can grow stored capacity without growing per-token FLOPs. That is the whole product.
+
+---
+
+## Mixture of experts
+
+In a standard Transformer block, attention is followed by one feed-forward network. MoE keeps the attention (always on) and replaces the FFN with $$E$$ expert FFNs plus a small router. Each token activates $$k$$ experts. Mixtral used $$E=8$$, $$k=2$$. DeepSeek-V3 uses 256 routed experts plus one shared expert, and fires 8 of the routed ones. Qwen3-235B-A22B is 128 experts, 8 active. The name is doing the work: 235B stored, 22B active.
+
+<figure style="text-align: center;">
+  <img src="/assets/img/blog/gpu-parameter-counter-moe.svg" alt="Dense FFN versus MoE: attention always on, only k of E experts run" width="700"/>
+  <figcaption style="font-size: 0.95em; color: #555;">Figure 1: Attention is dense either way. 6ND counts the green path. A "10T model" claim, if it is about anything, is counting every expert on disk.</figcaption>
+</figure>
+
+Two numbers, two jobs:
+
+| Model | Total (stored) | Active per token | Tokens | $$r = D / N_{\mathrm{active}}$$ |
+|---|---|---|---|---|
+| Mixtral 8×7B | 47B | 13B | — | — |
+| Qwen2.5-72B (dense) | 73B | 73B | 18T | ~250 |
+| Llama 3.1 405B (dense) | 405B | 405B | ~15T | ~37 |
+| Qwen3-235B-A22B | 235B | 22B | ~36T | ~1600 |
+| DeepSeek-V3 | 671B | 37B | 14.8T | ~400 |
+| Llama 4 Scout | 109B | 17B | ~40T | ~2400 |
+| Llama 4 Maverick | 400B | 17B | ~22T | ~1300 |
+| Kimi K3 | 2.8T | 104B | — | — |
+
+[Mixtral](https://arxiv.org/abs/2401.04088), [DeepSeek-V3](https://arxiv.org/abs/2412.19437), [Qwen3](https://arxiv.org/abs/2505.09388), [Llama 4](https://ai.meta.com/blog/llama-4-multimodal-intelligence/), [Kimi K3](https://arxiv.org/abs/2607.24653). The last column is why I do not want a single $$r$$ for Fable.
+
+Training compute uses the active column:
+
+$$
+C \approx 6 N_{\mathrm{active}} D.
+$$
+
+DeepSeek-V3 is the clean check because they published both counts and the token budget:
+
+$$
+C \approx 6 \times (37 \times 10^{9}) \times (14.8 \times 10^{12}) \approx 3.3 \times 10^{24}\ \mathrm{FLOPs}.
+$$
+
+If you put 671B into $$6ND$$ you get about $$6 \times 10^{25}$$, almost twenty times too high. DeepSeek also reported 2.788M H800 GPU hours for the full pipeline. That budget can deliver a few $$10^{24}$$ FLOPs at normal utilization. It cannot deliver $$6 \times 10^{25}$$. So the published *active* count is the one that is consistent with the GPU hours. The 671B is real. It is just not the $$N$$ in $$6ND$$.
+
+What the total count *does* buy you is capacity and a memory bill. You have to store every expert even if a given token only touches eight of them. Decode speed on a bandwidth-limited generate step tracks $$N_{\mathrm{active}}$$ (and the bytes per active parameter). VRAM tracks $$N_{\mathrm{total}}$$. That is why a 10T rumor and a 60 tok/s generate speed can both be true: sparse enough MoE, lots of experts on disk, a DeepSeek-like active set at runtime. It is also why they can both be false. You cannot read one off the other.
+
+I would bet Fable 5 is MoE. Anthropic has not said so. Every comparable closed model in this tier is rumored to be, and every open model that competes with it is. The estimate below is an active-count estimate either way. If Fable is dense, active equals total. If it is MoE, the tweeted number can be several times larger.
+
+---
+
+## Chinchilla, as a scenario
+
+Kaplan et al. fit loss against $$N$$, $$D$$, and compute, and preferred growing the model faster than the dataset. [Hoffmann et al.](https://arxiv.org/abs/2203.15556) retrained that allocation with isoFLOP curves. Their parametric fit is
 
 $$
 L(N_{\mathrm{active}}, D) \approx E + \frac{A}{N_{\mathrm{active}}^{\alpha}} + \frac{B}{D^{\beta}}.
 $$
 
-The first term is the irreducible loss floor. The second represents capacity-limited loss, and the third represents data-limited loss. Under the compute constraint $$C \approx 6 N_{\mathrm{active}} D$$, we can substitute $$D = C / (6 N_{\mathrm{active}})$$ and minimize the resulting one-variable function. This gives
+Under $$C \approx 6 N_{\mathrm{active}} D$$ the minimum sits near
 
 $$
-N_{\mathrm{active,opt}} \propto C^{\beta/(\alpha+\beta)}, \qquad D_{\mathrm{opt}} \propto C^{\alpha/(\alpha+\beta)}.
+N_{\mathrm{active,opt}} \propto C^{1/2}, \qquad D_{\mathrm{opt}} \propto C^{1/2},
 $$
 
-Their fitted exponents, approximately $$\alpha \approx 0.34$$ and $$\beta \approx 0.28$$, imply exponents near $$0.45$$ for model size and $$0.55$$ for data. Their direct isoFLOP fits are close to $$0.5$$ for both quantities. In practical terms, doubling the compute budget approximately multiplies the compute-optimal model size and dataset size by $$\sqrt{2}$$. The 70B / 1.4T Chinchilla checkpoint provides a convenient normalization of that relationship:
+which is the 20 tokens per parameter rule of thumb from the 70B / 1.4T checkpoint. Their printed Approach 3 constants actually implied something closer to 70. [Epoch's replication](https://epoch.ai/publications/chinchilla-scaling-a-replication-attempt) showed that was a bad fit. A re-fit recovered ~20. I use 20 as one branch, not as a law.
 
-$$
-\frac{D}{N_{\mathrm{active}}} \approx 20
-$$
-
-training tokens per parameter. I use $$20$$ as one reference allocation below, not as a constant that applies to every modern training run.
-
-If we use $$D \approx 20 N_{\mathrm{active}}$$ as one scenario, then the training equation becomes
-
-$$
-C \approx 6 N_{\mathrm{active}} (20 N_{\mathrm{active}}) = 120 N_{\mathrm{active}}^{2}.
-$$
-
-Now we can estimate parameters from compute alone:
-
-$$
-N_{\mathrm{Chinchilla,active}} \approx \sqrt{\frac{C}{120}}.
-$$
-
-That gives a first estimate from compute alone. It is a compute-optimal active parameter scale, not a universal law.
-
-The square root dampens the uncertainty. If our compute estimate is wrong by a factor of four, the inferred active parameter count is wrong by a factor of two. Without a data-to-parameter assumption, compute alone does not identify $$N_{\mathrm{active}}$$.
-
----
-
-## A Qwen check
-
-Qwen gives us a convenient check before applying the calculation to Fable 5.
-
-The [Qwen2.5 technical report](https://arxiv.org/abs/2412.15115) describes a pretraining scale of up to 18T tokens and a roughly 72B open-weight model. The [Qwen2.5-72B model card](https://huggingface.co/Qwen/Qwen2.5-72B) lists 72.7B total parameters and 70.0B non-embedding parameters. Assume the 72B checkpoint received the full reported 18T-token allocation. We will use the rounded 72B number below to keep the arithmetic readable.
-
-Assume the reported 72B model saw $$D = 18 \times 10^{12}$$ tokens. The dense training estimate is
-
-$$
-C_{\mathrm{Qwen}} \approx 6 N_{\mathrm{active}} D \approx 6(72 \times 10^{9})(18 \times 10^{12}) \approx 7.78 \times 10^{24}\ \mathrm{FLOPs}.
-$$
-
-Now pretend that we only knew this compute estimate and the 18T-token training run. Direct inversion gives
-
-$$
-N_{\mathrm{active}} \approx \frac{7.78 \times 10^{24}}{6(18 \times 10^{12})} \approx 72 \times 10^{9},
-$$
-
-which recovers the published model scale.
-
-The calculation is intentionally boring. It is not an independent recovery of Qwen's parameter count, because we constructed the compute estimate using that known count. It checks the algebra, and more usefully, it shows how strongly a compute-only estimate depends on the token-to-parameter ratio. The more interesting calculation, the one that can actually fool you, uses Chinchilla instead.
-
-For the same compute budget,
-
-$$
-N_{\mathrm{Chinchilla,active}} \approx \sqrt{\frac{7.78 \times 10^{24}}{120}} \approx 255\ \mathrm{B}.
-$$
-
-That is much larger than Qwen2.5-72B. The reason is not that the arithmetic failed. Using 72.7B total parameters gives roughly 248 tokens per parameter; using 70.0B non-embedding parameters gives roughly 257. Qwen was trained much longer than the original Chinchilla reference allocation. If we force the Chinchilla scenario onto an overtrained model, we infer too many active parameters.
-
-The Qwen calculation also shows the limitation of the Chinchilla scenario. The equation $$N_{\mathrm{active}} = \sqrt{C/120}$$ is a parameter estimate conditional on a training regime, not a parameter detector. Introduce the token-to-active-parameter ratio $$r$$:
-
-$$
-D = r N_{\mathrm{active}}.
-$$
-
-Then
+Write $$D = r N_{\mathrm{active}}$$. Then
 
 $$
 C \approx 6 r N_{\mathrm{active}}^{2}, \qquad N_{\mathrm{active}} \approx \sqrt{\frac{C}{6r}}.
 $$
 
-For Chinchilla, $$r \approx 20$$. For the Qwen2.5 example, $$r \approx 250$$. The same compute budget corresponds to very different model sizes depending on how much data the lab chose to spend on the model.
+$$r = 20$$ is Chinchilla. $$r = 250$$ is Qwen2.5-72B. $$r = 400$$ is DeepSeek-V3. Same $$C$$, very different $$N_{\mathrm{active}}$$. Picking one $$r$$ and announcing a Fable size is how this turns into a fake detector.
 
-For Fable 5, I would keep this uncertainty rather than choose one value for $$r$$. Picking a single $$r$$ is how a blog post turns into a fake parameter detector.
+A square root helps a little. If compute is off by 4×, inferred $$N_{\mathrm{active}}$$ is off by 2×. It does not save you from the wrong $$r$$, and it does not turn active into total.
 
 ---
 
-## A Fable example
+## A dense check: Qwen2.5-72B
 
-Suppose we have a rough hardware estimate. If a training run uses $$G$$ GPUs for $$T$$ seconds, each with peak throughput $$F_{\mathrm{peak}}$$, then
+Before Fable, check the algebra on a model that published $$N$$ and $$D$$.
+
+The [Qwen2.5 report](https://arxiv.org/abs/2412.15115) describes up to 18T pretraining tokens and a ~72B dense model. The [72B card](https://huggingface.co/Qwen/Qwen2.5-72B) lists 72.7B total and 70.0B non-embedding. Assume the 72B checkpoint saw the full 18T, and round to 72B:
+
+$$
+C_{\mathrm{Qwen}} \approx 6(72 \times 10^{9})(18 \times 10^{12}) \approx 7.78 \times 10^{24}\ \mathrm{FLOPs}.
+$$
+
+Direct inversion recovers 72B by construction. That is the point. It is not an independent discovery of Qwen's size. It is a check that $$6ND$$ is the accounting we think it is.
+
+The Chinchilla-only inversion of the same $$C$$ is
+
+$$
+N_{\mathrm{Chinchilla,active}} \approx \sqrt{\frac{7.78 \times 10^{24}}{120}} \approx 255\ \mathrm{B}.
+$$
+
+Too big, because Qwen was not trained at $$r = 20$$. The failure is the scenario, not the multiply.
+
+---
+
+## Is 6ND how people actually do this?
+
+Yes, for the training-compute half.
+
+[Epoch](https://epoch.ai/publications/estimating-training-compute) estimates undisclosed compute two ways. Operation counting: $$C \approx 6ND$$ with $$N$$ active. Hardware:
 
 $$
 C \approx \eta\, G\, T\, F_{\mathrm{peak}},
 $$
 
-where $$\eta$$ is the fraction of peak compute achieved by the complete training system.
+with utilization around 0.3 for LLMs (I use 25–40%). When the two disagree, an input is wrong. Hoffmann used the same 6. Browser Chinchilla calculators invert it. For MoE you still put active $$N$$ in. Putting every expert in invents a training run.
 
-The [NVIDIA H100 SXM specification](https://www.nvidia.com/en-us/data-center/h100/) lists 1,979 TFLOP/s of BF16 Tensor Core performance, but that number is marked as a sparsity-enabled peak. For dense BF16 arithmetic, a reasonable peak number to use is approximately $$989 \times 10^{12}$$ FLOP/s. This is still a theoretical peak, not the rate at which a real distributed training run necessarily performs useful model FLOPs.
+People have guessed Fable 5. Anthropic has not published a count. The [system card](https://www-cdn.anthropic.com/d00db56fa754a1b115b6dd7cb2e3c342ee809620.pdf) and [launch note](https://www.anthropic.com/research/claude-fable-5-mythos-5) say Fable 5 and Mythos 5 are the same weights with different safeguards, so a guess for one is a guess for the other. What circulated in July 2026, [summarized by explainx](https://explainx.ai/blog/claude-sonnet-opus-fable-parameter-counts-debate-july-2026), is weaker than $$6ND$$:
 
-The utilization factor absorbs the inefficiencies of the final pretraining run:
+- **Musk ratios.** April 2026: Grok is 0.5T total, half of Sonnet and one-tenth of Opus. People wrote Sonnet $$\approx 1$$T, Opus $$\approx 5$$T. [@AstraiaAI](https://x.com/AstraiaAI) added Fable/Mythos at 10T and said it came from Anthropic's compute partner, with no document. That is gossip about *stored* size.
+- **Throughput.** [unexcitedneurons](https://unexcitedneurons.substack.com/p/estimating-the-size-of-claude-opus) calibrated Opus 4.5/4.6 decode speed on Vertex against open MoE models. The observable is bytes loaded per token: about 90B to 150B *active*, which becomes 1T to 3T total only after you pick a routing ratio. Fable 5 generates at about 60 to 64 tok/s on [Artificial Analysis](https://artificialanalysis.ai/models/claude-fable-5/providers), same band as Opus 4.8. Time-to-first-token is slow because thinking is on. Decode is not. An order of magnitude more *active* parameters than Opus should crawl on the output stream unless the serving stack is doing a lot more parallelism, or the model is much sparser.
+- **Cost writeups.** [capitalandcompute](https://capitalandcompute.net/blog/what-it-costs-to-train-ai-models-2026/) puts Fable around 1–2T MoE, 10–20T tokens, $$10^{25}$$ to $$5\times 10^{25}$$ FLOPs, 20k–40k GPUs. A scenario. A 10T *stored* MoE at DeepSeek-like sparsity (~5% active) is a few hundred billion active, which is the number $$6ND$$ sees.
 
-- matrix shapes may not use the Tensor Cores perfectly;
-- activations and attention require non-matmul work;
-- GPUs wait for all-reduce communication;
-- the input pipeline and checkpointing consume time.
+$$6ND$$ will never emit 10T from a plausible final-run FLOP budget unless you feed it 10T *active* parameters. Nobody thinks Anthropic trained a dense 10T model. The rumor, if it is about anything, is stored MoE.
 
-$$\eta\, G\, T\, F_{\mathrm{peak}}$$ should represent useful model FLOPs from the final pretraining run. Failed experiments, evaluations, ablations, and unrelated post-training runs belong to total project compute. If an external estimate reports GPU-months for an entire development program, putting all of it into $$6 N_{\mathrm{active}} D$$ will overestimate the final model's scale.
+---
 
-For a concrete but explicitly hypothetical Fable calculation, suppose a final pretraining run used 2,000 H100-equivalent GPUs for 120 days, with 25 to 40 percent model-FLOP utilization. These are example numbers, not a claim about Anthropic's actual hardware. Two thousand H100s for 120 days is a mid-2024-scale cluster, not a Mythos-class run. If the real training used a much larger cluster, or a mixture-of-experts model, the same method still applies, but the active dense-equivalent count can sit well below the stored-parameter count.
+## A Fable example
 
-At 25 percent utilization,
-
-$$
-C_{\mathrm{low}} \approx 0.25 \times 2000 \times (120 \times 86400) \times 989 \times 10^{12} \approx 5.13 \times 10^{24}\ \mathrm{FLOPs}.
-$$
-
-At 40 percent utilization,
+If a run uses $$G$$ GPUs for $$T$$ seconds at peak $$F_{\mathrm{peak}}$$,
 
 $$
-C_{\mathrm{high}} \approx 8.20 \times 10^{24}\ \mathrm{FLOPs}.
+C \approx \eta\, G\, T\, F_{\mathrm{peak}}.
 $$
 
-Now apply the two data-allocation scenarios. For a Chinchilla-like model with $$r = 20$$,
+The [H100 SXM sheet](https://www.nvidia.com/en-us/data-center/h100/) lists 1,979 TFLOP/s BF16 Tensor Core with sparsity. Dense BF16 is about $$989 \times 10^{12}$$ FLOP/s. $$\eta$$ eats imperfect matmul shapes, attention, all-reduce, the data pipeline, checkpointing. Failed runs and ablations are project compute. Dumping all of them into $$6 N_{\mathrm{active}} D$$ overstates the shipped model.
 
-$$
-N_{20} \approx \sqrt{\frac{C}{6 \times 20}},
-$$
+Two thousand H100s for 120 days is a mid-2024 cluster. I am using it as arithmetic, not as a claim about Anthropic:
 
-which is about 207B at the low compute end and 261B at the high end. For a Qwen-like overtrained model with $$r = 250$$,
-
-$$
-N_{250} \approx \sqrt{\frac{C}{6 \times 250}},
-$$
-
-which is about 58B to 74B. For an intermediate allocation of 100 tokens per parameter, the same compute range gives about 92B to 117B.
-
-| r (tokens per active parameter) | Active dense-equivalent scale |
+| $$r$$ | Active, 2k GPU / 120d / 25–40% |
 |---|---|
-| 20 (Chinchilla-like) | 207B to 261B |
+| 20 | 207B to 261B |
 | 100 | 92B to 117B |
-| 250 (Qwen-like) | 58B to 74B |
+| 250 | 58B to 74B |
 
-These figures do not establish Fable 5's actual size, because neither the assumed hardware allocation nor its training-token ratio is publicly verified. The same compute budget can describe a smaller model trained on much more data or a larger model trained closer to the Chinchilla allocation.
+A 2026 frontier run is tens of thousands of accelerators. Same formulas, different $$G$$. Twenty thousand H100-equivalents, 120 days, 30% utilization:
+
+$$
+C \approx 0.30 \times 20000 \times (120 \times 86400) \times 989 \times 10^{12} \approx 6.2 \times 10^{25}\ \mathrm{FLOPs}.
+$$
+
+| $$r$$ | Active, 20k GPU example |
+|---|---|
+| 20 | ~720B |
+| 100 | ~320B |
+| 400 (DeepSeek-like) | ~160B |
+
+That last row is the one I take seriously if Fable is MoE and overtrained. Double the cluster and the Chinchilla branch crosses a trillion *active*. A 10T *stored* rumor then wants something like 5–10% activation, which is DeepSeek's neighborhood (37 / 671 $$\approx$$ 5.5%). The 2,000-GPU table cannot get you there. The method can, once you stop treating a 2024 cluster as Anthropic's 2026 one.
+
+None of this is Fable's size. Hardware and $$r$$ are unpublished. The same FLOP budget is a smaller active model on more tokens or a larger one closer to Chinchilla.
 
 ---
 
 ## Hardware sanity checks
 
-A memory measurement can remove some possibilities. If an unknown model is deployed in BF16 and its weights occupy roughly 140 GB, then the weights alone suggest approximately 70B stored parameters because BF16 uses two bytes per parameter:
+Memory bounds *stored* size. If a BF16 deployment's weights occupy ~140 GB, that is ~70B stored (two bytes per parameter). Runtime overhead, quantization, and tensor parallelism make this fuzzy, but it kills some branches. A dense 250B BF16 model needs ~500 GB just for weights. If it demonstrably runs in 160 GB without offload or quant, 250B dense is wrong. For MoE the same measurement bounds $$N_{\mathrm{total}}$$, not $$N_{\mathrm{active}}$$.
+
+Decode speed bounds *active* size. Batch-one generation is often bandwidth-bound:
 
 $$
-N_{\mathrm{total}} \approx \frac{140 \times 10^{9}}{2} \approx 70 \times 10^{9}.
+R_{\mathrm{decode}} \lesssim \frac{B_{\mathrm{memory}}}{b N_{\mathrm{active}}}.
 $$
 
-Runtime memory, quantization metadata, tensor parallelism, and reserved space mean this is not exact. But it can reject some branches of the Chinchilla estimate. A dense 250B BF16 model needs roughly 500 GB just for weights. If the deployment demonstrably runs in 160 GB of GPU memory without offloading or quantization, the 250B hypothesis is wrong.
-
-The same reasoning applies to inference throughput, but it is less clean. During batch-one autoregressive generation, the GPU often spends more time moving weights than performing arithmetic. A rough memory roof is
-
-$$
-R_{\mathrm{decode}} \lesssim \frac{B_{\mathrm{memory}}}{b N_{\mathrm{active}}},
-$$
-
-where $$B_{\mathrm{memory}}$$ is usable memory bandwidth and $$b$$ is bytes per active parameter in the simplified dense-equivalent picture. The stored-weight memory check and the decode-throughput check are therefore measuring different quantities for a mixture-of-experts model. Both estimates also change with batching, quantization, context length, KV-cache design, and speculative decoding. They are best used to eliminate impossible parameter counts, not to identify the exact one.
-
-A known Qwen checkpoint can also measure the hardware efficiency. Run it at the same precision and concurrency, then compare the ideal memory roof with the achieved throughput. Use that gap when estimating the unknown model's active dense-equivalent scale.
+That is the Opus method: tokens per second on Vertex, calibrated against DeepSeek-class models with published active counts. Batching, quant, context, KV cache, and speculative decoding all move the number. Use it to kill impossibilities, not to mint a press-release parameter count.
 
 ---
 
-The public Fable 5 documentation describes a model with a 1M-token context window and up to 128K output tokens, but it does not publish a parameter count. It also describes adaptive thinking, long-horizon agents, and server-side behavior. Those facts tell us about the product, not directly about $$N$$.
+Fable 5 has a 1M context window and 128K output tokens. It thinks for a long time before the first token. None of that is $$N$$.
 
-To narrow the range, we would need some combination of:
+To narrow the range you need some mix of GPU count and duration, precision, pretraining tokens, weight memory, decode speed at a known context, and a dense-vs-MoE tell. Compute constrains $$N_{\mathrm{active}} D$$. Tokens split that product. Memory constrains stored parameters. Decode constrains active ones.
 
-- an estimate of training GPU count and duration;
-- the precision and hardware generation used in training;
-- the size of the pretraining corpus;
-- weight memory or model placement information;
-- single-user decode throughput at a specified context length;
-- evidence about dense versus mixture-of-experts computation.
-
-Compute constrains the product $$N_{\mathrm{active}} D$$. Training tokens tell us how that product is split. Weight memory constrains stored parameters. Decode throughput constrains active parameters and memory traffic.
-
-If these estimates disagree, one of the assumptions is wrong. Fable 5 could have many more stored than active parameters, its training could have used a much larger token budget, or the hardware estimate could be off.
-
-The public information does not give us Fable 5's parameter count. It does give us a way to make conditional estimates once a compute budget, a token budget, or a hardware footprint becomes available.
-
-Qwen is a useful arithmetic consistency check. The direct inversion recovers its known scale by construction. The Chinchilla-only estimate overshoots because Qwen used far more tokens per parameter than the original reference allocation. The difference comes from the training regime, not from the algebra.
-
-Applied to Fable 5, the estimate should be stated conditionally: given a plausible final-run compute budget, different data-to-active-parameter ratios imply different active dense-equivalent scales, and hardware measurements can then rule out some of them. That is the part we can calculate, which is less exciting than a single number and, I think, the honest one.
+If those disagree, an assumption is wrong. I would not bet on a single number. I would bet the model is MoE, that $$6ND$$ is talking about a few hundred billion active parameters at a 20k-GPU-class budget, and that any 10T figure you see is a stored-expert count someone rounded for Twitter.
 
 ---
 
-* [Kaplan et al., *Scaling Laws for Neural Language Models*](https://arxiv.org/abs/2001.08361). The earlier power-law and compute-allocation study.
-* [Hoffmann et al., *Training Compute-Optimal Large Language Models*](https://arxiv.org/abs/2203.15556). The Chinchilla scaling result and the 70B model trained on 1.4T tokens.
-* [Brown et al., *Language Models are Few-Shot Learners*, Appendix D](https://arxiv.org/abs/2005.14165). The approximately $$6ND$$ training-compute accounting.
-* [Qwen2.5 Technical Report](https://arxiv.org/abs/2412.15115). The reported 18T-token pretraining scale and Qwen2.5 model sizes.
-* [Qwen2.5-72B model card](https://huggingface.co/Qwen/Qwen2.5-72B). The 72.7B total and 70.0B non-embedding parameter counts used in the consistency check.
-* [Anthropic's Claude Fable 5 overview](https://www.anthropic.com/claude/fable) and [Claude Platform model documentation](https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5). Public product specifications and the absence of a published parameter count.
-* [NVIDIA H100 specifications](https://www.nvidia.com/en-us/data-center/h100/). H100 Tensor Core peak specifications used for the illustrative hardware estimate.
+* [Kaplan et al., *Scaling Laws for Neural Language Models*](https://arxiv.org/abs/2001.08361). The earlier compute-allocation study.
+* [Brown et al., *Language Models are Few-Shot Learners*, Appendix D](https://arxiv.org/abs/2005.14165). The $$6ND$$ training-compute accounting.
+* [Hoffmann et al., *Training Compute-Optimal Large Language Models*](https://arxiv.org/abs/2203.15556). Chinchilla, and the 70B / 1.4T checkpoint.
+* [Besiroglu et al., *Chinchilla scaling: A replication attempt*](https://epoch.ai/publications/chinchilla-scaling-a-replication-attempt). Printed Approach 3 constants implied $$\sim 70$$ tokens/param; a re-fit recovers $$\sim 20$$.
+* [Sevilla et al., *Estimating training compute of deep learning models*](https://epoch.ai/publications/estimating-training-compute). $$6ND$$ vs hardware $$\times$$ time $$\times$$ peak $$\times$$ utilization ($$\sim 0.3$$ for LLMs).
+* [Jiang et al., *Mixtral of Experts*](https://arxiv.org/abs/2401.04088). 47B stored, 13B active, top-2 of 8.
+* [DeepSeek-AI, *DeepSeek-V3 Technical Report*](https://arxiv.org/abs/2412.19437). 671B / 37B, 14.8T tokens, 2.788M H800 GPU hours.
+* [Qwen2.5 Technical Report](https://arxiv.org/abs/2412.15115) and the [72B model card](https://huggingface.co/Qwen/Qwen2.5-72B). Dense overtraining check.
+* [Qwen3 Technical Report](https://arxiv.org/abs/2505.09388). 235B total / 22B active, 36T tokens.
+* [Meta, *The Llama 4 herd*](https://ai.meta.com/blog/llama-4-multimodal-intelligence/). Scout 109B/17B on ~40T tokens; Maverick 400B/17B on ~22T.
+* [Moonshot, *Kimi K3*](https://arxiv.org/abs/2607.24653). 2.8T total, 104B active, 16 of 896 routed experts.
+* [Anthropic, Fable 5 / Mythos 5 system card](https://www-cdn.anthropic.com/d00db56fa754a1b115b6dd7cb2e3c342ee809620.pdf) and [launch note](https://www.anthropic.com/research/claude-fable-5-mythos-5). Same weights. No published $$N$$.
+* [Thakker, *Claude Sonnet 1T, Opus 5T, Fable 10T?*](https://explainx.ai/blog/claude-sonnet-opus-fable-parameter-counts-debate-july-2026). July 2026 size gossip, labeled by evidence tier.
+* [unexcitedneurons, *Estimating the size of Claude Opus*](https://unexcitedneurons.substack.com/p/estimating-the-size-of-claude-opus). Decode-throughput estimate of Opus 4.5/4.6 active size.
+* [capitalandcompute, *What it costs to train AI models, 2026*](https://capitalandcompute.net/blog/what-it-costs-to-train-ai-models-2026/). Unofficial Fable cost/FLOP scenario.
+* [Artificial Analysis, Claude Fable 5](https://artificialanalysis.ai/models/claude-fable-5/providers). ~60–64 output tok/s once generation starts.
+* [NVIDIA H100](https://www.nvidia.com/en-us/data-center/h100/). Peak used in the hardware example.
