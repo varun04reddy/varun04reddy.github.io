@@ -28,13 +28,12 @@ I help make AI and math videos at [Welch Labs](https://www.youtube.com/channel/U
 If you want to keep going, here is what is actually on this site:
 
 - [The research](/research/), in longer form, including the parts I have not figured out.
-- [The Latent Space](/blog/), where I write about something until it feels obvious. Lately: path integrals for learning dynamics, whether you can back out a closed model's parameter count from its training compute, and what happens when you edit a single fact inside a language model's weights.
 - [Class notes](/notes/) I took for myself, starting with Susskind's classical mechanics. Unofficial, and occasionally wrong.
 - [Resources](/resources/) I keep going back to: lectures, papers, tools. Not a curriculum.
 - [Photos and life outside work](/personal/), the one section with no citations.
 - [Philosophy](/philosophy/), which is currently three sentences and a promise.
 
-The non-research half is the reason I wanted a site in the first place. I like that an essay about what AI companions might do to us can sit two links away from a Hessian, and that nobody can tell me those belong on separate websites.
+The non-research half is the reason I wanted a site in the first place. Notes, photos, and a philosophy page can sit two links away from a Hessian, and nobody can tell me those belong on separate websites.
 
 My email is varunreddy [at] g [dot] harvard [dot] edu. I actually like email, and I write back.
 
