@@ -31,6 +31,18 @@ body.sticky-bottom-footer {
   max-width: $max-content-width;
 }
 
+// Keep cream in the page margins. Put the reading column back on a
+// white sheet so cards, tables, and math keep their structure.
+html:not([data-theme="dark"]) {
+  .container[role="main"] {
+    background-color: var(--global-content-bg-color);
+    border-radius: 12px;
+    padding: 2rem 1.75rem 2.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(70, 50, 30, 0.06);
+  }
+}
+
 // Profile
 .profile {
   img {
