@@ -3,6 +3,7 @@ title: "Subliminal Learning"
 date: 2025-10-27
 layout: post
 categories: [technical]
+description: Notes from a lunch-and-learn on why shared initialization lets a teacher's auxiliary outputs pull a student along in parameter space.
 ---
 
 Notes from a lunch-and-learn on subliminal learning, cleaned up enough to post. The LLM experiment is from Anthropic's [Subliminal Learning](https://alignment.anthropic.com/2025/subliminal-learning/) writeup. The algebra below is a first-order picture of *why shared initialization matters*. It is not a theorem that explains the LLM result.
