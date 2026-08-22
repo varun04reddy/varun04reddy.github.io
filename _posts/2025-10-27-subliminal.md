@@ -6,7 +6,11 @@ categories: [technical]
 description: Notes from a lunch-and-learn on why shared initialization lets a teacher's auxiliary outputs pull a student along in parameter space.
 ---
 
-Notes from a lunch-and-learn on subliminal learning, cleaned up enough to post. The LLM experiment is from Anthropic's [Subliminal Learning](https://alignment.anthropic.com/2025/subliminal-learning/) writeup. The algebra below is a first-order picture of *why shared initialization matters*. It is not a theorem that explains the LLM result.
+Notes from a lunch-and-learn on subliminal learning, cleaned up enough to post. Thanks to Jan Betley and Stephen Welch for the conversations around this. A few more comprehensive resources on the topic: [emergent misalignment](https://www.lesswrong.com/posts/ifechgnJRtJdduFGC/emergent-misalignment-narrow-finetuning-can-produce-broadly) and [our Welch Lab's video](https://www.youtube.com/watch?v=NUAb6zHXqdI&t=1407s)
+
+I think what makes this so interesting to me is that subliminal learning probably won't look this direct outside a toy experiment like the one below. But the concept still is very relevant. The way labs train models today (from talking to friends, I don't have an first hand experience): you take a previous model and use it as the base for the next, bigger one. If that base model is inherently biased, it becomes the foundation for everything built on top of it. And you can imagine a world where that bias gets so intertwined across generations of models, almost like genetic evolution, that eventually they all share the same subliminal, groupthink-y bias. 
+
+
 
 
 ---
@@ -455,20 +459,3 @@ The student step cannot oppose the teacher's displacement along $$\nabla_\theta 
 If the teacher's step is *only* on the primary loss, $$\Delta\theta_T = -\varepsilon \nabla L_T$$, a first-order expansion gives $$L_T(\theta_S) \le L_T(\theta_0)$$. In the MNIST toy the teacher is trained on primary plus auxiliary, so that implication does not go through. Even when it does, it is a statement about a nearby parameter vector, not about the student having learned the classification task in function space.
 
 The LLM result still needs the experiment. Shared init plus logit matching on unrelated data is a much longer, noisier process than one gradient step on a scalar $$G$$.
-
----
-
-## Broader Implications
-
-- **Model Alignment:** Hidden traits or biases can transfer implicitly
-  through data generation, even in filtered datasets.
-
-- **Synthetic Data Caution:** Datasets created by large models carry
-  latent biases of their source models.
-
-- **General Phenomenon:** The effect extends across scales, from
-  small MLPs to large transformer architectures.
-
----
-
-The LLM result is still an experiment. Shared initialization plus distillation on filtered unrelated data is a longer, noisier process than one gradient step on a scalar $$G$$. Do not treat the inequality above as an explanation of eagles in number lists.
