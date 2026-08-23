@@ -32,6 +32,12 @@
   kind: work
   note: Cubist hackathon.
 
+- name: Chicago, Illinois
+  lat: 41.8781
+  lng: -87.6298
+  kind: work
+  note: QT intern at CTC.
+
 - name: Harvard, Cambridge
   lat: 42.3744
   lng: -71.1169
