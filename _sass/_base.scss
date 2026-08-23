@@ -34,6 +34,14 @@ table {
   }
 }
 
+.news {
+  .table,
+  .table td,
+  .table th {
+    background-color: transparent;
+  }
+}
+
 a,
 table.table a {
   color: var(--global-theme-color);
@@ -171,6 +179,11 @@ ul.task-list input[type="checkbox"] {
   .card-body {
     padding: 1.25rem 1.25rem 1.25rem 1.25rem;
   }
+}
+
+.list-group-item {
+  background-color: var(--global-card-bg-color);
+  color: var(--global-text-color);
 }
 
 // Citation
@@ -527,6 +540,15 @@ footer.sticky-bottom {
 .post-title {
   mjx-container[jax="CHTML"][display="true"] {
     display: unset;
+  }
+}
+
+.post-content,
+#markdown-content {
+  mjx-container[jax="CHTML"][display="true"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 }
 
