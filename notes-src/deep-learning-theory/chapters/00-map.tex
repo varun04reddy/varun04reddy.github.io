@@ -1,0 +1,24 @@
+\section{Setting}
+
+A feedforward MLP of depth $L$ and width $N$ maps $x\in\R^{D}$ to a scalar by
+\begin{align}
+  h^{(0)} &= x, \nonumber\\
+  h^{(\ell+1)} &= N^{-a_{\ell+1}} W^{(\ell+1)}\,\ph\!\big(h^{(\ell)}\big),
+  \qquad \ell=0,\ldots,L-2, \nonumber\\
+  f &= \gamma^{-1} N^{-a_L}\, w\cdot\ph\!\big(h^{(L-1)}\big).
+  \label{eq:mlp-schema}
+\end{align}
+The activation $\ph$ is applied elementwise. Weights are drawn $W^{(\ell)}_{ij}\sim\mathcal{N}(0,N^{-b_\ell})$, and the training set is $\data=\{(x_\mu,y_\mu)\}_{\mu=1}^{P}$. Two kernels appear throughout:
+\begin{equation}
+  \Phi^{(\ell)}_{\mu\nu}
+  \equiv
+  N^{-1}\,\ph\!\big(h^{(\ell)}_\mu\big)\cdot\ph\!\big(h^{(\ell)}_\nu\big),
+  \qquad
+  K_{\mu\nu}(t)
+  \equiv
+  \partial_\theta f(x_\mu;t)\cdot\partial_\theta f(x_\nu;t).
+  \label{eq:two-kernels}
+\end{equation}
+The first is the \emph{feature kernel} of layer $\ell$. The second is the \emph{neural tangent kernel}. In the limits treated here both concentrate, and the $O(N)$ weights are replaced by $O(P^2)$ kernel entries.
+
+The questions are: which functions~\eqref{eq:mlp-schema} can represent; how $f(\,\cdot\,;\theta(t))$ moves under gradient flow; and what the population risk is after training. The answers depend on how $(a_\ell,b_\ell,\gamma)$ scale with $N$, and on the ratio $L/N$.

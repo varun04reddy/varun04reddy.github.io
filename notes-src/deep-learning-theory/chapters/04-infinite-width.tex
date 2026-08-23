@@ -1,0 +1,97 @@
+\section{Infinite-width description}
+\label{sec:inf}
+
+\subsection{NNGP recursion}
+
+Fix~\eqref{eq:mup} at initialization. A single first-layer unit is
+\begin{equation}
+  h^{(1)}_{i}(x)
+  =D^{-1/2}\sum_{j=1}^{D} W^{(1)}_{ij}x_j,
+  \qquad
+  W^{(1)}_{ij}\sim\mathcal{N}(0,1).
+  \label{eq:h1}
+\end{equation}
+The pair $\bigl(h^{(1)}_i(x),h^{(1)}_i(x')\bigr)$ is Gaussian with covariance $\Phi^{(0)}(x,x')=D^{-1}x\cdot x'$, and distinct neurons are independent.
+
+Layer $\ell+1$ is a sum of $N$ i.i.d.\ terms. Because $W^{(\ell+1)}$ is Gaussian,
+\begin{equation}
+  h^{(\ell+1)}_{i}(\,\cdot\,)
+  \;\xrightarrow[N\to\infty]{}\;
+  \mathrm{GP}\bigl(0,\,\Phi^{(\ell)}\bigr),
+  \qquad
+  \Phi^{(\ell)}(x,x')
+  =\E\bigl[\ph\bigl(h^{(\ell)}(x)\bigr)\ph\bigl(h^{(\ell)}(x')\bigr)\bigr],
+  \label{eq:nngp-rec}
+\end{equation}
+the expectation being over the GP of layer $\ell$~\cite{neal1996priors,lee2018nngp}. The network output is then a GP with kernel $\Phi^{(L-1)}$. For two inputs the expectation is a two-dimensional Gaussian integral against $\ph$.
+
+\subsection{NTK recursion}
+
+Write $f^{(\ell+1)}=N^{-1/2}W^{(\ell+1)}\ph(h^{(\ell)})$ and $\dot\ph\equiv\ph'$. Differentiating through a layer,
+\begin{equation}
+  \partial_\theta f^{(\ell+1)}(x)
+  =N^{-1/2}\bigl(\partial_\theta W^{(\ell+1)}\bigr)\ph(h^{(\ell)}(x))
+  +N^{-1/2}W^{(\ell+1)}\bigl(\dot\ph(h^{(\ell)}(x))\odot \partial_\theta h^{(\ell)}(x)\bigr).
+  \label{eq:jac-layer}
+\end{equation}
+The inner product of two such Jacobians splits into a new-weights term and a previous-layer term. After averaging over $W^{(\ell+1)}\sim\mathcal{N}(0,1)$ and sending $N\to\infty$,
+\begin{align}
+  \Phi^{(0)}(x,x') &= D^{-1}x\cdot x', \nonumber\\
+  \Phi^{(\ell+1)}(x,x') &= \E\bigl[\ph(h)\ph(h')\bigr], \nonumber\\
+  \dot\Phi^{(\ell+1)}(x,x') &= \E\bigl[\dot\ph(h)\dot\ph(h')\bigr], \nonumber\\
+  \Theta^{(1)}(x,x') &= \Phi^{(0)}(x,x'), \nonumber\\
+  \Theta^{(\ell+1)}(x,x')
+  &=
+  \Phi^{(\ell)}(x,x')
+  +\dot\Phi^{(\ell)}(x,x')\,\Theta^{(\ell)}(x,x'),
+  \label{eq:ntk-rec}
+\end{align}
+where $(h,h')$ is the NNGP pair at layer $\ell$~\cite{jacot2018ntk,lee2019wide}. The first term in the last line is the kernel of the incoming activations; the second gates the previous NTK by $\dot\ph$. In NTK scaling ($d=0$), $\Theta(t)=\Theta(0)$ and~\eqref{eq:test-sol} applies with $K=\Theta^{(L)}$.
+
+\subsection{Two-layer DMFT}
+
+Return to~\eqref{eq:mup} with $L=2$:
+\begin{equation}
+  h_\mu(t)=D^{-1/2}W(t)x_\mu,
+  \qquad
+  f_\mu(t)=\gamma_0^{-1}N^{-1/2}\,v(t)\cdot\ph\bigl(h_\mu(t)\bigr).
+  \label{eq:two-layer}
+\end{equation}
+Integrating the gradient flow,
+\begin{align}
+  v(t)&=v(0)+\frac{\eta_0\gamma_0}{P\sqrt{N}}\int_0^t\dd s\sum_{\nu}\Delta_\nu(s)\,\ph\bigl(h_\nu(s)\bigr),
+  \label{eq:v-int}\\
+  W(t)&=W(0)+\frac{\eta_0\gamma_0}{P\sqrt{D}}\int_0^t\dd s\sum_{\nu}\Delta_\nu(s)\,g_\nu(s)\,x_\nu^\top,
+  \label{eq:W-int}
+\end{align}
+with $g_{\nu,i}\propto v_i\dot\ph(h_{\nu i})$. Substitute into $h_\mu$:
+\begin{equation}
+  h_\mu(t)
+  =\underbrace{D^{-1/2}W(0)x_\mu}_{\chi_\mu(t)}
+  +\frac{\eta_0\gamma_0}{P}\int_0^t\dd s\sum_{\nu}
+  \Delta_\nu(s)\,G_{\mu\nu}(t,s)\,\Phi^{(0)}_{\mu\nu},
+  \label{eq:h-int}
+\end{equation}
+up to the precise index placement on $\Phi^{(0)}$. The initial field $\chi$ is Gaussian with covariance $\Phi^{(0)}$. The kernels
+\begin{equation}
+  \Phi_{\mu\nu}(t,s)=N^{-1}\ph(h_\mu(t))\cdot\ph(h_\nu(s)),
+  \qquad
+  G_{\mu\nu}(t,s)=N^{-1}g_\mu(t)\cdot g_\nu(s)
+  \label{eq:dmft-kernels}
+\end{equation}
+concentrate as $N\to\infty$ on deterministic two-time order parameters~\cite{bordelon2022selfconsistent}. Self-consistency: $\Phi$ and $G$ computed from the process~\eqref{eq:h-int} must reproduce~\eqref{eq:dmft-kernels}.
+
+The integral term in~\eqref{eq:h-int} is proportional to $\gamma_0$. Sending $\gamma_0\to 0$ freezes $h(t)=h(0)$ and recovers
+\begin{equation}
+  \partial_t f_\mu
+  =\frac{\eta_0}{P}\sum_{\nu}\Theta_{\mu\nu}(0)\,\Delta_\nu.
+  \label{eq:dmft-lazy}
+\end{equation}
+
+For $L>2$ each layer has its own pair $(\Phi^{(\ell)},G^{(\ell)})$, and the preactivations are coupled GPs across time. The closure is still $O(P^2)$ kernels rather than $O(N)$ neurons.
+
+If $\ph(h)=h$, the kernels stay Gaussian and the dynamics reduce to the SVD flow of~\cite{saxe2014exact}: input--output modes train independently, with time constants set by their singular values. Infinite width does not by itself freeze features; a linear network in $\mu$P scaling still moves its internal SVD.
+
+\begin{exercise}
+From~\eqref{eq:v-int}--\eqref{eq:W-int}, show that $\gamma_0\to 0$ at fixed $\eta_0$ freezes $W$ while still allowing $v$ to interpolate on an $O(1)$ timescale.
+\end{exercise}

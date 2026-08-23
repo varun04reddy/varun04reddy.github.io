@@ -1,0 +1,70 @@
+\section{Definitions}
+
+Short definitions for objects that appear above. Standard linear-algebra vocabulary is assumed.
+
+\begin{description}[style=nextline,leftmargin=1.1em,itemsep=0.55em,font=\normalfont\bfseries]
+
+\item[Gram matrix.]
+For vectors $v_1,\ldots,v_P$, the matrix $G_{\mu\nu}=v_\mu\cdot v_\nu$. Always positive semidefinite. The kernel matrix $\hat K_{\mu\nu}=K(x_\mu,x_\nu)$ is the Gram matrix of the feature maps $\Phi(x_\mu)$.
+
+\item[Positive-definite kernel.]
+A symmetric $K:\mathcal{X}\times\mathcal{X}\to\R$ such that $\sum_{\mu\nu}c_\mu c_\nu K(x_\mu,x_\nu)\ge 0$ for all finite collections $\{x_\mu\}$ and all $c\in\R^{P}$. Equivalent, by Mercer, to $K(x,x')=\Phi(x)\cdot\Phi(x')$ for some (possibly infinite-dimensional) feature map $\Phi$.
+
+\item[Feature map / kernel trick.]
+A lift $\Phi:\mathcal{X}\to\mathcal{H}$ into a Hilbert space. Inner products in $\mathcal{H}$ can be evaluated as $K(x,x')$ without writing $\Phi$ down. The SVM dual~\eqref{eq:svm-dual} and kernel ridge~\eqref{eq:ridge} depend on data only through $K$.
+
+\item[RKHS.]
+The reproducing kernel Hilbert space $\mathcal{H}_K$ of a kernel $K$ is the completion of $\mathrm{span}\{K(x,\,\cdot\,):x\in\mathcal{X}\}$ under the inner product $\langle K(x,\,\cdot\,),K(x',\,\cdot\,)\rangle_{\mathcal{H}_K}=K(x,x')$. Evaluation is continuous: $h(x)=\langle h,K(x,\,\cdot\,)\rangle_{\mathcal{H}_K}$.
+
+\item[Representer theorem.]
+Empirical-risk minimizers in $\mathcal{H}_K$ with an RKHS-norm penalty lie in $\mathrm{span}\{K(x_\mu,\,\cdot\,)\}_{\mu=1}^{P}$. The infinite-dimensional problem collapses to $P$ coefficients.
+
+\item[Support vector.]
+A training point with nonzero dual coefficient $\alpha_\mu$ in~\eqref{eq:kkt}. Complementary slackness puts it on the margin. The max-margin hyperplane is a linear combination of support vectors only.
+
+\item[Gradient flow.]
+The ODE $\dot\theta=-\eta\nabla_\theta\loss(\theta)$, the $\eta\to 0$ limit of gradient descent. In these notes, the source of all training dynamics.
+
+\item[Gaussian process.]
+A random function $f$ such that $\bigl(f(x_1),\ldots,f(x_n)\bigr)$ is jointly Gaussian for every finite set. Specified by a mean and a covariance kernel $K(x,x')=\E[f(x)f(x')]$. An infinite-width net at initialization is a GP with the NNGP kernel.
+
+\item[NNGP.]
+Neural network Gaussian process: the $N\to\infty$ law of $f(\,\cdot\,;\theta)$ at initialization. Covariance given by the feature-kernel recursion~\eqref{eq:nngp-rec}.
+
+\item[Neural tangent kernel.]
+$K(x,x';t)=\partial_\theta f(x;t)\cdot\partial_\theta f(x';t)$. The metric that makes gradient flow on $\theta$ into an ODE on functions~\eqref{eq:fn-ode}. Frozen if features do not move.
+
+\item[Order parameter.]
+A macroscopic summary (here $\Phi$, $G$, $K$, $\Theta$) that concentrates as $N\to\infty$. The microscopic weights fluctuate; the order parameters obey a closed equation.
+
+\item[NTK parameterization / $\mu$P.]
+Two scalings of~\eqref{eq:pb-mlp} with width. NTK parameterization: $d=0$, features freeze, $K(t)=K(0)$. Maximal update parameterization ($\mu$P) / mean-field: $d=\tfrac12$, features move by $\ON{1}$, kernels obey DMFT. See~\eqref{eq:mup}.
+
+\item[DMFT.]
+Dynamical mean-field theory. After $N\to\infty$, each neuron is an independent copy of a stochastic process whose statistics $(\Phi,G)$ are determined self-consistently from that same process. Replaces $O(N)$ coupled ODEs by $O(P^2)$ kernel equations.
+
+\item[Criticality.]
+Initialization $(C_W,C_b)$ at which the kernel recursion has $\chi=F'(q_\star)=1$. Signals neither explode nor vanish with depth. For $\tanh$ at $C_b=0$, $C_W=1$; for ReLU, $C_W=2$.
+
+\item[Stability parameter $\chi$.]
+$\chi=C_W\E[\dot\ph(z)^2]$ at the kernel fixed point. Multiplies perturbations of $K$ from layer to layer. $\chi=1$ is critical.
+
+\item[Depth-to-width ratio.]
+$L/N$. Leading finite-width expansion parameter at criticality: $\Var(G)\sim (L/N)V_0$. Kernel formulae hold for $L/N\ll 1$; dNTK representation learning is $O(L/N)$.
+
+\item[dNTK.]
+Differential of the NTK, $D(x,x',x'')=\partial_\theta\Theta(x,x')\cdot\partial_\theta f(x'')$. Trilinear kernel that sources $\dot\Theta$ at finite width. Vanishes for linear models and, to leading order, in infinite-width NTK scaling.
+
+\item[Wick's theorem.]
+Gaussian moment factorization: $\E[z_{a_1}\cdots z_{a_{2n}}]$ is the sum over pairings of products of covariances. Used to close four-point recursions for deep linear nets,~\eqref{eq:var-rec}.
+
+\item[Deterministic equivalence.]
+In high dimension, a random matrix functional (here the ridge resolvent $(\hat\Sigma+\lambda I)^{-1}$) concentrates on a non-random proxy, typically involving an effective ridge $\kappa$. Converts the random learning curve into~\eqref{eq:R-spectral}.
+
+\item[Spectral bias.]
+Kernel machines learn eigenmodes of $K$ in decreasing order of $\lambda_k$. Mode $k$ is fit once $P\lambda_k\gtrsim\kappa$.
+
+\item[Lazy / rich training.]
+Lazy: $K(t)\approx K(0)$, the net is a linear model in its initial Jacobian features. Rich: hidden features $\Phi(t)$ move by $\ON{1}$. Selected by $d$ in~\eqref{eq:lr-scale}, or by $\gamma_0$ at finite $N$.
+
+\end{description}

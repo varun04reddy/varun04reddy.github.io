@@ -1,0 +1,60 @@
+\section{Supervised learning}
+\label{sec:supervised}
+
+Inputs $x\in\mathcal{X}\subset\R^{D}$ and labels $y\in\mathcal{Y}\subset\R$ are jointly distributed as $P(x,y)$. A predictor $h$ is taken from a hypothesis class $\hyp$. For a neural net, $\hyp$ is the image of $\theta\mapsto f(\,\cdot\,;\theta)$.
+
+A loss $\ell:\mathcal{Y}\times\mathcal{Y}\to\R_{\ge 0}$ compares prediction and label. Two standard choices:
+\begin{equation}
+  \ell_{\mathrm{sq}}(h(x),y)=\tfrac12\bigl(h(x)-y\bigr)^2,
+  \qquad
+  \ell_{01}(h(x),y)=\ind\bigl[h(x)\neq y\bigr].
+  \label{eq:losses}
+\end{equation}
+
+\begin{definition}[Population and empirical risk]
+\begin{equation}
+  R(h)\equiv \E_{(x,y)\sim P}\bigl[\ell(h(x),y)\bigr],
+  \qquad
+  \hat R_{\data}(h)\equiv\frac1P\sum_{\mu=1}^{P}\ell\bigl(h(x_\mu),y_\mu\bigr),
+  \label{eq:risks}
+\end{equation}
+where $\data=\{(x_\mu,y_\mu)\}_{\mu=1}^{P}\sim P^{\otimes P}$.
+\end{definition}
+
+The Bayes predictor $h_{\mathrm{Bayes}}=\argmin R(h)$ is over all measurable functions and need not lie in $\hyp$. The best-in-class predictor is $h^\star=\argmin_{h\in\hyp} R(h)$. Training does not see $P$. Empirical risk minimization replaces the population problem by
+\begin{equation}
+  h_{\data,\mathrm{ERM}}=\argmin_{h\in\hyp}\hat R_{\data}(h).
+  \label{eq:erm}
+\end{equation}
+
+\begin{lemma}
+For any \emph{fixed} $h$, $\E_{\data}[\hat R_{\data}(h)]=R(h)$.
+\end{lemma}
+\begin{proof}
+Linearity of expectation; the $P$ samples are identically distributed.
+\end{proof}
+Once $h$ depends on $\data$, the identity fails: $\E_{\data}[\hat R_{\data}(h_{\data})]$ is optimistically biased. The generalization gap is
+\begin{equation}
+  \Delta_{\mathrm{gen}}(h_{\data})\equiv R(h_{\data})-\hat R_{\data}(h_{\data}).
+  \label{eq:gen-gap}
+\end{equation}
+\emph{Generalization error} will mean $R(h_{\data})$ itself.
+
+Write $h(x)=f(x;\theta)$. Square loss on $\data$ is
+\begin{equation}
+  \loss(\theta)
+  \equiv
+  \frac1{2P}\sum_{\mu=1}^{P}\bigl(f(x_\mu;\theta)-y_\mu\bigr)^2,
+  \label{eq:sq-loss}
+\end{equation}
+so $\partial\loss/\partial f_\mu=(f_\mu-y_\mu)/P$. Gradient descent and its gradient-flow limit are
+\begin{equation}
+  \theta_{t+1}=\theta_t-\eta\,\nabla_\theta\loss(\theta_t),
+  \qquad
+  \td{\theta}{t}=-\eta\,\nabla_\theta\loss(\theta).
+  \label{eq:gd-gf}
+\end{equation}
+
+\begin{exercise}
+Verify $\E_{\data}[\hat R_{\data}(h)]=R(h)$ from~\eqref{eq:risks}. Where does the argument use that $h$ does not depend on $\data$?
+\end{exercise}

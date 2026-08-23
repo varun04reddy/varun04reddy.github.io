@@ -1,0 +1,104 @@
+\section{Feature spaces and kernel machines}
+\label{sec:kernels}
+
+\subsection{Maximum-margin hyperplanes}
+
+A linear classifier $h(x)=\mathrm{sign}(w\cdot x+b)$ on a linearly separable sample admits many separating hyperplanes. The \emph{margin} of $(w,b)$ is the distance to the nearest training point,
+\begin{equation}
+  \delta^\star=\min_{\mu\in[P]}\frac{\lvert w\cdot x_\mu+b\rvert}{\|w\|}.
+  \label{eq:margin}
+\end{equation}
+The scale $(w,b)\sim(\alpha w,\alpha b)$ is redundant. Canonicalize by $\min_\mu\lvert w\cdot x_\mu+b\rvert=1$, so that $\delta^\star=1/\|w\|$. Maximizing the margin is then
+\begin{equation}
+  \min_{w,b}\ \tfrac12\|w\|^2
+  \qquad\text{subject to}\qquad
+  y_\mu(w\cdot x_\mu+b)\ge 1
+  \quad\forall\mu.
+  \label{eq:hard-margin}
+\end{equation}
+
+The Lagrangian is
+\begin{equation}
+  L(w,b,\alpha)
+  =\tfrac12\|w\|^2
+  -\sum_{\mu=1}^{P}\alpha_\mu\bigl(y_\mu(w\cdot x_\mu+b)-1\bigr),
+  \qquad \alpha_\mu\ge 0.
+  \label{eq:lagrange}
+\end{equation}
+Stationarity in $(w,b)$ gives the KKT conditions
+\begin{equation}
+  w=\sum_{\mu=1}^{P}\alpha_\mu y_\mu x_\mu,
+  \qquad
+  \sum_{\mu=1}^{P}\alpha_\mu y_\mu=0,
+  \qquad
+  \alpha_\mu\bigl(y_\mu(w\cdot x_\mu+b)-1\bigr)=0.
+  \label{eq:kkt}
+\end{equation}
+Complementary slackness forces $\alpha_\mu=0$ unless the constraint is tight. Those points are the \emph{support vectors}; they alone determine $w$. Substituting~\eqref{eq:kkt} back into $L$ produces the dual
+\begin{equation}
+  \max_{\alpha\ge 0}\
+  \sum_{\mu}\alpha_\mu
+  -\tfrac12\sum_{\mu\nu}\alpha_\mu\alpha_\nu y_\mu y_\nu\, x_\mu\cdot x_\nu
+  \qquad\text{s.t.}\qquad
+  \sum_{\mu}\alpha_\mu y_\mu=0.
+  \label{eq:svm-dual}
+\end{equation}
+The data enter only through the Gram matrix $G_{\mu\nu}=x_\mu\cdot x_\nu$. The classifier itself is
+\begin{equation}
+  h(x)=\mathrm{sign}\!\left(\sum_{\mu}\alpha_\mu y_\mu\, x\cdot x_\mu+b\right).
+  \label{eq:svm-pred}
+\end{equation}
+
+\subsection{The kernel trick}
+
+If $\{(x_\mu,y_\mu)\}$ is not linearly separable in $\R^{D}$, lift through a feature map $\Phi:\R^{D}\to\R^{M}$, $M\ge D$, and run the same SVM on $\Phi(x)$. The dual~\eqref{eq:svm-dual} and the predictor~\eqref{eq:svm-pred} depend on $\Phi$ only through
+\begin{equation}
+  K(x,x')\equiv\Phi(x)\cdot\Phi(x').
+  \label{eq:kernel-def}
+\end{equation}
+One never instantiates $\Phi$. It is enough that $K$ be a symmetric positive-definite kernel (Mercer's theorem): there exist $\lambda_k\ge 0$ and orthonormal $\psi_k$ on $L^2(P_x)$ with
+\begin{equation}
+  K(x,x')=\sum_{k}\lambda_k\,\psi_k(x)\psi_k(x').
+  \label{eq:mercer-kernel}
+\end{equation}
+The associated feature map is $\Phi(x)_k=\sqrt{\lambda_k}\,\psi_k(x)$, possibly infinite-dimensional.
+
+\begin{theorem}[Representer]
+Any minimizer of $\hat R_{\data}(h)+\lambda\|h\|_{\mathcal{H}_K}^2$ over the RKHS of $K$ is of the form
+$h(\,\cdot\,)=\sum_{\mu=1}^{P}c_\mu K(x_\mu,\,\cdot\,)$.
+\end{theorem}
+The coefficients $c\in\R^{P}$ are the only degrees of freedom. Kernel ridge regression is the square-loss case,
+\begin{equation}
+  f(x)=k(x)^\top(\hat K+\lambda I)^{-1} y,
+  \qquad
+  \hat K_{\mu\nu}=K(x_\mu,x_\nu),\quad
+  k(x)_\mu=K(x,x_\mu).
+  \label{eq:ridge}
+\end{equation}
+
+\subsection{A neural kernel}
+
+A random one-hidden-layer net
+\begin{equation}
+  f(x)=N^{-1/2}\sum_{i=1}^{N} v_i\,\ph(w_i\cdot x),
+  \qquad w_i\sim\mathcal{N}(0,D^{-1}I),\ \ v_i\sim\mathcal{N}(0,1),
+  \label{eq:shallow}
+\end{equation}
+defines, at initialization, the kernel
+\begin{equation}
+  K_{\mathrm{NNGP}}(x,x')
+  =\E_{w,v}\bigl[f(x)f(x')\bigr]
+  =\E_{w}\bigl[\ph(w\cdot x)\ph(w\cdot x')\bigr].
+  \label{eq:nngp-shallow}
+\end{equation}
+For $\ph(z)=\max(z,0)$ this is the Cho--Saul arc-cosine kernel~\cite{cho2009kernel}. Let $c=x\cdot x'/(\|x\|\|x'\|)$ and $\vartheta=\arccos c$. Then
+\begin{equation}
+  \E\bigl[\ph(w\cdot x)\ph(w\cdot x')\bigr]
+  =\frac{\|x\|\|x'\|}{2\pi}\bigl(\sin\vartheta+(\pi-\vartheta)\cos\vartheta\bigr).
+  \label{eq:cho-saul}
+\end{equation}
+Deeper random nets compose this expectation layer by layer: that is the NNGP recursion below.
+
+\begin{exercise}
+From~\eqref{eq:kkt}, show that if $x_\mu$ is not a support vector then $\alpha_\mu=0$. Conclude that $w$ is a linear combination of the support vectors only.
+\end{exercise}
