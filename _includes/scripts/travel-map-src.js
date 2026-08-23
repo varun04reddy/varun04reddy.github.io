@@ -23,17 +23,16 @@
     return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
   }
 
-  function themeColor() {
-    const value = getComputedStyle(document.documentElement).getPropertyValue("--global-theme-color");
-    return (value || "#b509ac").trim();
+  function markerColor(kind) {
+    return kind === "trip" ? "#d64545" : "#3b6fd8";
   }
 
-  function markerStyle() {
+  function markerStyle(kind) {
     return {
       radius: 8,
       color: "#ffffff",
       weight: 2,
-      fillColor: themeColor(),
+      fillColor: markerColor(kind),
       fillOpacity: 0.92,
     };
   }
@@ -81,8 +80,7 @@
         lightLayer.addTo(map);
       }
     }
-    const style = markerStyle();
-    markers.forEach((marker) => marker.setStyle(style));
+    markers.forEach((marker) => marker.setStyle(markerStyle(marker._placeKind)));
   };
 
   function goToPlace(index, openPopup) {
@@ -134,7 +132,9 @@
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         return;
       }
-      const marker = L.circleMarker([lat, lng], markerStyle()).addTo(map);
+      const kind = place.kind === "trip" ? "trip" : "work";
+      const marker = L.circleMarker([lat, lng], markerStyle(kind)).addTo(map);
+      marker._placeKind = kind;
       marker.bindPopup(popupHtml(place), { closeButton: false });
       marker.on("click", function () {
         goToPlace(index, true);

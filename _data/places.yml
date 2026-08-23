@@ -1,22 +1,129 @@
 # Places shown on /personal/. Add a new block to put another point on the map.
 # lat/lng can be copied from Google Maps (right click -> coordinates).
+# kind: work or trip.
 
 - name: Charlottesville, Virginia
   lat: 38.0293
   lng: -78.4767
+  kind: work
   note: Undergrad at UVA.
 
 - name: Pasadena, California
   lat: 34.1478
   lng: -118.1445
-  note: Caltech, where I first sat down with the brain as a research object.
+  kind: work
+  note: SURF at Caltech with Dean Mobbs.
+
+- name: San Diego, California
+  lat: 32.7157
+  lng: -117.1611
+  kind: work
+  note: NeurIPS 2025.
+
+- name: Stanford, California
+  lat: 37.4275
+  lng: -122.1697
+  kind: work
+  note: TreeHacks 2024.
 
 - name: New York, New York
   lat: 40.7128
   lng: -74.006
+  kind: work
   note: Cubist hackathon.
 
-- name: Cambridge, Massachusetts
-  lat: 42.3736
-  lng: -71.1097
-  note: Kempner Institute. Where I am now.
+- name: Harvard, Cambridge
+  lat: 42.3744
+  lng: -71.1169
+  kind: work
+  note: Research at the Kempner Institute.
+
+- name: Atlanta, Georgia
+  lat: 33.7756
+  lng: -84.3963
+  kind: work
+  note: Trading at GT 2025.
+
+- name: Waterloo, Canada
+  lat: 43.4723
+  lng: -80.5449
+  kind: work
+  note: Hack the North 2024.
+
+- name: Ann Arbor, Michigan
+  lat: 42.2780
+  lng: -83.7382
+  kind: work
+  note: Traders at Michigan 2025.
+
+- name: MIT, Cambridge
+  lat: 42.3601
+  lng: -71.0942
+  kind: work
+  note: Research at CSAIL and Traders at MIT 2025.
+
+- name: Rio de Janeiro
+  lat: -22.9068
+  lng: -43.1729
+  kind: trip
+  note: Vacation.
+
+- name: Madrid
+  lat: 40.4168
+  lng: -3.7038
+  kind: trip
+  note: Vacation.
+
+- name: Paris
+  lat: 48.8566
+  lng: 2.3522
+  kind: trip
+  note: Vacation.
+
+- name: Acadia, Maine
+  lat: 44.3386
+  lng: -68.2733
+  kind: trip
+  note: Vacation.
+
+- name: Turks and Caicos
+  lat: 21.6940
+  lng: -71.7979
+  kind: trip
+  note: Vacation.
+
+- name: Cancun, Mexico
+  lat: 21.1619
+  lng: -86.8515
+  kind: trip
+  note: Vacation.
+
+- name: Puerto Rico
+  lat: 18.4655
+  lng: -66.1057
+  kind: trip
+  note: Vacation.
+
+- name: Dominican Republic
+  lat: 18.4861
+  lng: -69.9312
+  kind: trip
+  note: Vacation.
+
+- name: Florence
+  lat: 43.7696
+  lng: 11.2558
+  kind: trip
+  note: Vacation.
+
+- name: Venice
+  lat: 45.4408
+  lng: 12.3155
+  kind: trip
+  note: Vacation.
+
+- name: Rome
+  lat: 41.9028
+  lng: 12.4964
+  kind: trip
+  note: Vacation.

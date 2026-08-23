@@ -19,7 +19,7 @@
         <li>
           <button
             type="button"
-            class="travel-map__place"
+            class="travel-map__place travel-map__place--{{ place.kind | default: 'work' }}"
             data-index="{{ forloop.index0 }}"
             data-lat="{{ place.lat }}"
             data-lng="{{ place.lng }}"
