@@ -1,32 +1,90 @@
 \section{Generalization in the lazy regime}
 \label{sec:gen}
 
-Once $K$ is frozen, training is kernel ridge~\eqref{eq:ridge}. Three views of the same estimator, following~\cite{hastie2022surprises} and the ridge lectures in APMTH 226.
+Once $K$ is frozen, training is kernel ridge~\eqref{eq:ridge}. The three views below are the same estimator.
 
-\subsection{Three views of ridge}
+\subsection{Primal, dual, and push-through}
 
-Let $X\in\R^{P\times M}$ be a design (rows $\Phi(x_\mu)^\top$), $y\in\R^{P}$, and
+Let $\Phi(x)\in\R^{M}$ be a fixed feature map, $X\in\R^{P\times M}$ the design with rows $\Phi(x_\mu)^\top$, and $y\in\R^{P}$. Square loss~\eqref{eq:sq-loss} plus weight decay is
+\begin{equation}
+  \loss(w)
+  =\frac1{2P}\|Xw-y\|^2+\frac\lambda2\|w\|^2.
+  \label{eq:ridge-loss}
+\end{equation}
+Stationarity $\nabla_w\loss=0$ reads
+\begin{equation}
+  \Bigl(\frac1P X^\top X+\lambda I\Bigr)w
+  =\frac1P X^\top y
+  \qquad\Longleftrightarrow\qquad
+  \bigl(X^\top X+\lambda P I\bigr)w
+  =X^\top y.
+  \label{eq:ridge-stat}
+\end{equation}
+Hence the primal estimator
 \begin{equation}
   \hat w
-  =\argmin_w\ \frac1{2P}\|Xw-y\|^2+\frac\lambda2\|w\|^2
   =\frac1P\Bigl(\frac1P X^\top X+\lambda I\Bigr)^{-1} X^\top y.
   \label{eq:ridge-primal}
 \end{equation}
-\emph{Interpolation.} If $P>M$ and $\lambda\downarrow 0$, this is ordinary least squares, $\hat w=(X^\top X)^{-1}X^\top y$. If $P<M$, the push-through identity
+
+\emph{Push-through.} The two matrices $X^\top X+\lambda P I$ and $XX^\top+\lambda P I$ satisfy
 \begin{equation}
-  X^\top(XX^\top+\lambda P I)^{-1}
-  =\bigl(X^\top X+\lambda P I\bigr)^{-1}X^\top
+  \bigl(X^\top X+\lambda P I\bigr)X^\top
+  =X^\top\bigl(XX^\top+\lambda P I\bigr),
+  \label{eq:push-pre}
+\end{equation}
+because both sides equal $X^\top XX^\top+\lambda P X^\top$. Left-multiply by $(X^\top X+\lambda P I)^{-1}$ and right-multiply by $(XX^\top+\lambda P I)^{-1}$:
+\begin{equation}
+  X^\top\bigl(XX^\top+\lambda P I\bigr)^{-1}
+  =\bigl(X^\top X+\lambda P I\bigr)^{-1}X^\top.
   \label{eq:push}
 \end{equation}
-gives the min-norm interpolant $\hat w=X^\top(XX^\top)^{-1}y$ as $\lambda\downarrow 0$.
+Substitute into~\eqref{eq:ridge-stat}:
+\begin{equation}
+  \hat w
+  =X^\top\bigl(\hat K+\lambda P I\bigr)^{-1} y,
+  \qquad
+  \hat K\equiv XX^\top.
+  \label{eq:ridge-dual-w}
+\end{equation}
+On a test point, $f(x)=\Phi(x)\cdot\hat w$ is~\eqref{eq:ridge}. If $P>M$ and $\lambda\downarrow 0$,~\eqref{eq:ridge-primal} is ordinary least squares. If $P<M$ and $\lambda\downarrow 0$,~\eqref{eq:ridge-dual-w} is the min-norm interpolant $\hat w=X^\top\hat K^{-1} y$.
 
-\emph{Dynamics.} Gradient flow on square loss starting at $w=0$ converges to that min-norm interpolant. This is~\eqref{eq:lin-gf} in weight space, and~\eqref{eq:ridgeless} in function space.
+\emph{Dynamics.} Gradient flow on~\eqref{eq:ridge-loss} starting at $w=0$ is
+\begin{equation}
+  \partial_t w
+  =-\eta\Bigl(\frac1P X^\top(Xw-y)+\lambda w\Bigr).
+  \label{eq:ridge-gf}
+\end{equation}
+As $t\to\infty$ one recovers~\eqref{eq:ridge-stat}. At $\lambda=0$ this is~\eqref{eq:lin-gf}, and the function-space solution is~\eqref{eq:ridgeless}.
 
-\emph{Bayes.} Likelihood $y\mid X,w\sim\mathcal{N}(Xw,\sigma^2 I)$ and prior $w\sim\mathcal{N}(0,\sigma_0^2 I)$ have posterior mean equal to~\eqref{eq:ridge-primal} with $\lambda=\sigma^2/\sigma_0^2$.
+\subsection{Bayes: completing the square}
+
+Likelihood $y\mid X,w\sim\mathcal{N}(Xw,\sigma^2 I)$ and prior $w\sim\mathcal{N}(0,\sigma_0^2 I)$ have joint exponent
+\begin{equation}
+  -\frac{\|Xw-y\|^2}{2\sigma^2}-\frac{\|w\|^2}{2\sigma_0^2}
+  =-\frac1{2\sigma^2}\Bigl(
+    w^\top\bigl(X^\top X+\tfrac{\sigma^2}{\sigma_0^2}I\bigr)w
+    -2 w^\top X^\top y
+    +\lvert y\rvert^2
+  \Bigr).
+  \label{eq:bayes-exp}
+\end{equation}
+Completing the square, the posterior is Gaussian with mean
+\begin{equation}
+  w_{\mathrm{MAP}}
+  =\bigl(X^\top X+\tfrac{\sigma^2}{\sigma_0^2}I\bigr)^{-1} X^\top y.
+  \label{eq:bayes-mean}
+\end{equation}
+Match to~\eqref{eq:ridge-stat}: $\lambda P=\sigma^2/\sigma_0^2$, i.e.
+\begin{equation}
+  \lambda=\frac{\sigma^2}{P\sigma_0^2}.
+  \label{eq:lambda-bayes}
+\end{equation}
+The ridge parameter in~\eqref{eq:ridge-loss} is the prior precision in units of the $1/(2P)$ loss.
 
 \subsection{Population eigenbasis}
 
-On $L^2(P_x)$ the kernel has
+On $L^2(P_x)$ the kernel has Mercer eigenvalues $\lambda_k$ (not the ridge parameter) and eigenfunctions $\psi_k$,
 \begin{equation}
   \int K(x,x')\,\psi_k(x')\,\dd P_x(x')
   =\lambda_k\psi_k(x),
@@ -34,25 +92,47 @@ On $L^2(P_x)$ the kernel has
   \lambda_1\ge\lambda_2\ge\cdots\ge 0.
   \label{eq:mercer}
 \end{equation}
-Expand the target $f^\star(x)=\E[y\mid x]=\sum_k \bar a_k\psi_k$, and write $t_k\equiv\bar a_k^2$. Additive label noise has variance $\sigma^2$.
+Expand the target $f^\star(x)=\E[y\mid x]=\sum_k \bar a_k\psi_k$, and write $t_k\equiv\bar a_k^2$. Additive label noise has variance $\sigma^2$. Features are $\Phi(x)_k=\sqrt{\lambda_k}\,\psi_k(x)$.
 
-In the deterministic-equivalence limit~\cite{bordelon2020spectrum,canatar2021spectral,hastie2022surprises} the coefficient of mode $k$ concentrates on
+\subsection{Effective ridge}
+
+Write $\Sigma=\E_x[\Phi(x)\Phi(x)^\top]=\mathrm{diag}(\lambda_k)$ in the Mercer basis, and $\hat\Sigma=P^{-1}X^\top X$. Let $\hat\Sigma^{-\mu}$ be the empirical covariance without sample $\mu$. Sherman--Morrison on~\eqref{eq:ridge-stat} gives the leave-one-out relation
 \begin{equation}
-  \hat a_k
-  =\frac{\lambda_k}{\lambda_k+\kappa}\,\bar a_k
-  +\text{(mean-zero sampling noise)},
-  \label{eq:mode-shrink}
+  \Phi(x_\mu)\cdot\hat w
+  =\frac{\Phi(x_\mu)\cdot\hat w^{-\mu}}{1+P^{-1}\Phi(x_\mu)^\top(\hat\Sigma^{-\mu}+\lambda I)^{-1}\Phi(x_\mu)}.
+  \label{eq:loo}
 \end{equation}
-where the effective ridge $\kappa$ solves
+The denominator is $1+h_{\mu\mu}$, with leverage $h_{\mu\mu}$. In the proportional limit every leverage concentrates on the same value $n_{\mathrm{eff}}/P$, and $(\hat\Sigma^{-\mu}+\lambda I)^{-1}$ concentrates on a deterministic matrix $(\Sigma+\kappa I)^{-1}$ sharing the Mercer eigenbasis. Then
+\begin{equation}
+  n_{\mathrm{eff}}
+  =\E\bigl[\Phi(x)^\top(\Sigma+\kappa I)^{-1}\Phi(x)\bigr]
+  =\sum_k\frac{\lambda_k}{\lambda_k+\kappa}.
+  \label{eq:df}
+\end{equation}
+Self-consistency of the equivalent ridge---the in-sample problem is a ridge-$\lambda$ estimator after $n_{\mathrm{eff}}$ degrees of freedom have been spent---is $\kappa\,(1-n_{\mathrm{eff}}/P)=\lambda$, or
+\begin{equation}
+  \kappa=\frac{\lambda}{1-n_{\mathrm{eff}}/P}.
+  \label{eq:kappa-dof}
+\end{equation}
+(The same $\kappa$ appears as the deterministic equivalent of the primal resolvent, $(\hat\Sigma+\lambda I)^{-1}\mapsto(\Sigma+\kappa I)^{-1}$.) Clearing the denominator:
 \begin{equation}
   \kappa=\lambda+\kappa\sum_{k}\frac{\lambda_k}{P(\lambda_k+\kappa)}.
   \label{eq:kappa}
 \end{equation}
-Ridgeless learning is $\lambda\to 0^+$ with $\kappa$ remaining positive when $P$ does not saturate every mode. Equation~\eqref{eq:kappa} is a self-consistent accounting of the degrees of freedom absorbed by the sample: each mode contributes a factor $\lambda_k/(\lambda_k+\kappa)$, and $\kappa$ is whatever is left of $\lambda$ after that absorption.
+Ridgeless learning is $\lambda\to 0^+$ with $\kappa$ remaining positive when $P$ does not saturate every mode. Each mode contributes a factor $\lambda_k/(\lambda_k+\kappa)$ to $n_{\mathrm{eff}}$, and $\kappa$ is whatever is left of $\lambda$ after that absorption.
+
+In this equivalent, the coefficient of mode $k$ concentrates on
+\begin{equation}
+  \hat a_k
+  =\frac{\lambda_k}{\lambda_k+\kappa}\,\bar a_k
+  +\frac{\lambda_k}{\lambda_k+\kappa}\,\xi_k,
+  \label{eq:mode-shrink}
+\end{equation}
+where $\xi_k$ is mean-zero sampling noise of variance $\sigma^2/P$ (the empirical inner product of $\psi_k$ against the $P$ noise samples).
 
 \subsection{Bias, variance, learning curve}
 
-Square-loss population risk then decomposes as
+Square-loss population risk is $R=\E_x[(\hat f(x)-f^\star(x))^2]+\sigma^2$. Insert~\eqref{eq:mode-shrink}:
 \begin{equation}
   R
   =\sum_k t_k\Bigl(\frac{\kappa}{\lambda_k+\kappa}\Bigr)^2
@@ -60,9 +140,9 @@ Square-loss population risk then decomposes as
   +\sigma^2.
   \label{eq:R-spectral}
 \end{equation}
-The first sum is bias: mode $k$ is learned once $P\lambda_k\gtrsim\kappa$. The second is variance from fitting noise.
+The first sum is bias: the filter $\kappa/(\lambda_k+\kappa)$ leaves mode $k$ unlearned until $P\lambda_k\gtrsim\kappa$. The second is variance from fitting noise.
 
-If $\lambda_k$ decays, as it does for NTK, Laplace, and ReLU kernels on the sphere, small-$k$ modes reach $\lambda_k\gg\kappa/P$ first. The residual of mode $k$ falls only once $P\gtrsim\kappa/\lambda_k$: \emph{spectral bias}. For fixed $\{\lambda_k\}$, a target with $t_k$ on large-$\lambda_k$ modes has smaller $R$ at given $P$: \emph{task--model alignment}~\cite{canatar2021spectral}. As $\lambda\to 0$ and $P$ crosses the rank of $\hat K$, the variance term spikes (\emph{double descent}); a decaying spectrum or $\lambda>0$ smooths the spike~\cite{belkin2019reconciling,hastie2022surprises}.
+If $\lambda_k$ decays, as it does for NTK, Laplace, and ReLU kernels on the sphere, small-$k$ modes reach $\lambda_k\gg\kappa$ first. The residual of mode $k$ falls only once $P\gtrsim\kappa/\lambda_k$: \emph{spectral bias}. For fixed $\{\lambda_k\}$, a target with $t_k$ on large-$\lambda_k$ modes has smaller $R$ at given $P$: \emph{task--model alignment}. As $\lambda\to 0$ and $P$ crosses the rank of $\hat K$, $n_{\mathrm{eff}}\to P$ forces $\kappa$ through a peak and the variance term spikes (\emph{double descent}); a decaying spectrum or $\lambda>0$ smooths the spike.
 
 \begin{figure}[ht]
 \centering
@@ -71,8 +151,24 @@ If $\lambda_k$ decays, as it does for NTK, Laplace, and ReLU kernels on the sphe
 \label{fig:learn}
 \end{figure}
 
-Lazy neural generalization is~\eqref{eq:R-spectral} for the NTK spectrum $\Theta^{(L)}(t=0)$. On the sphere that spectrum is a Gegenbauer transform~\cite{canatar2021spectral}.
+Lazy neural generalization is~\eqref{eq:R-spectral} for the NTK spectrum $\Theta^{(L)}(t=0)$. On the sphere that spectrum is a Gegenbauer transform of $\Theta^{(L)}$~\cite{pehlevan2023infinite}.
 
 \begin{exercise}
 From~\eqref{eq:kappa}, with $\sigma=0$ and $\lambda_k=k^{-\beta}$, $\beta>1$, estimate the $P$ at which mode $k$ is half-learned ($\kappa\approx\lambda_k$).
 \end{exercise}
+\begin{solution}
+Half-learning of mode $k$ means $\kappa\approx\lambda_k=k^{-\beta}$. Take $\lambda\to 0^+$ in~\eqref{eq:kappa}:
+\[
+  1=\sum_{j\ge 1}\frac{\lambda_j}{P(\lambda_j+\kappa)}
+  =\frac1P\sum_{j\ge 1}\frac{1}{1+\kappa\, j^{\beta}}.
+\]
+Replace the sum by an integral and set $m=\kappa^{-1/\beta}$, so $\lambda_m=\kappa$ and $m\approx k$:
+\[
+  \sum_{j\ge 1}\frac{1}{1+\kappa j^{\beta}}
+  \;\approx\;
+  \int_0^\infty\frac{\dd j}{1+(j/m)^{\beta}}
+  =m\int_0^\infty\frac{\dd u}{1+u^{\beta}}.
+\]
+The $u$-integral converges at infinity iff $\beta>1$, and is an $O(1)$ constant $C_\beta$. Thus $1\approx C_\beta\, m/P$, i.e.\ $P\sim m\sim k$. Mode $k$ is half-learned when the sample size reaches the mode index.
+\ansbox{$P\sim k$. Equivalently $P\sim\kappa^{-1/\beta}$ with $\kappa=\lambda_k=k^{-\beta}$.}
+\end{solution}

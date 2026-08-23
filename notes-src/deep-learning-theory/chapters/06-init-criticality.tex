@@ -1,7 +1,7 @@
 \section{Effective theory at initialization}
 \label{sec:crit}
 
-The infinite-width kernels still depend on depth through a nonlinear map. That map can explode, vanish, or sit at a fixed point, according to the initialization variances~\cite{poole2016exponential,schoenholz2017deep,roberts2022pdlt}. Finite-width corrections around the fixed point are organized in $L/N$.
+The infinite-width kernels still depend on depth through a nonlinear map. That map can explode, vanish, or sit at a fixed point, according to the initialization variances~\cite{roberts2022pdlt}. Finite-width corrections around the fixed point are organized in $L/N$.
 
 \subsection{Gaussian integrals}
 
@@ -59,13 +59,20 @@ $\ph(z)=z$ implies $K^{(\ell+1)}=C_W K^{(\ell)}$, so $K^{(\ell)}=C_W^{\ell-1}K^{
 Odd, $\dot\ph(0)=1$. At $C_b=0$ the origin $q_\star=0$ is a fixed point and $\chi(0)=C_W$. Criticality at the origin is $C_W=1$. For $C_W<1$ the kernel collapses with depth; for $C_W>1$ it grows until the nonlinearity saturates. The same pattern holds for $\sin$ and $\mathrm{erf}$ (the $K'=0$ class of~\cite{roberts2022pdlt}).
 
 \paragraph{ReLU.}
-Homogeneous. The Cho--Saul formula~\eqref{eq:cho-saul} is the diagonal-plus-cosine map. Criticality is $C_W=2$ at $C_b=0$ (He initialization). There is no exponentially stable $q_\star>0$ at $C_b=0$ other than this ray.
+Homogeneous. The Cho--Saul formula~\eqref{eq:cho-saul} is the diagonal-plus-cosine map. On the diagonal, $z\sim\mathcal{N}(0,q)$ gives $\E[\ph(z)^2]=q/2$, so $q_{\ell+1}=(C_W/2)q_\ell$ at $C_b=0$. Fixed-point criticality is $C_W=2$ (He initialization). Off the diagonal the cosine obeys the Cho--Saul angular map; there is no exponentially stable $q_\star>0$ at $C_b=0$ other than this ray.
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.95\textwidth]{fig03_criticality.pdf}
 \caption{$\tanh$ kernel recursion~\eqref{eq:K-rec} with $C_b=0$. Left: $K^{(\ell)}(x,x)$. Right: cosine of two inputs, initialized at $c=0.5$. Subcritical, critical ($C_W=1$), and supercritical $C_W$.}
 \label{fig:crit}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{fig10_relu_crit.pdf}
+\caption{ReLU kernel recursion from~\eqref{eq:cho-saul}, $C_b=0$. Variance $q_{\ell+1}=(C_W/2)q_\ell$ is critical at $C_W=2$.}
+\label{fig:relu-crit}
 \end{figure}
 
 \subsection{\texorpdfstring{Four-point functions and $L/N$}{Four-point functions and L/N}}
@@ -77,7 +84,21 @@ At finite $N$ the empirical metric
   N^{-1}\sum_{i=1}^{N} h_{i}(x_\alpha)h_{i}(x_\beta)
   \label{eq:metric}
 \end{equation}
-fluctuates about $K_{\alpha\beta}$. For a \emph{deep linear} net, a single input, $C_b=0$ and $C_W=1$, Wick's theorem on $z_i=\sum_j N^{-1/2}W_{ij}h_j$ gives the recursion
+fluctuates about $K_{\alpha\beta}$. For a \emph{deep linear} net and a single input, $C_b=0$, $C_W=1$, the next-layer preactivations are $z=N^{-1/2}Wh$ with $W_{ij}\sim\mathcal{N}(0,1)$ independent of $h$. Then $G'=N^{-1}\|z\|^2$ and, given $h$, each $z_i\sim\mathcal{N}(0,G)$ independently, so $\E[G'\mid h]=G$. Thus $\E[G']= \E[G]$. For the second moment, Wick~\eqref{eq:wick} on a pair of Gaussians gives $\E[z_i^4\mid h]=3G^2$ and $\E[z_i^2 z_j^2\mid h]=G^2$ ($i\neq j$), hence
+\begin{equation}
+  \E[G'^2\mid h]
+  =N^{-2}\bigl(N\cdot 3G^2+N(N-1)G^2\bigr)
+  =G^2\bigl(1+\tfrac{2}{N}\bigr).
+  \label{eq:G2}
+\end{equation}
+Taking $\E[\,\cdot\,]$ and subtracting $\E[G']^2=K^2$,
+\begin{equation}
+  \Var(G')
+  =\bigl(1+\tfrac{2}{N}\bigr)\bigl(\Var(G)+K^2\bigr)-K^2
+  =\Var(G)+\frac{2K^2}{N}+\frac{2}{N}\Var(G).
+  \label{eq:var-exact}
+\end{equation}
+At large $N$ with $\Var(G)=O(N^{-1})$ the last term is $O(N^{-2})$, and
 \begin{equation}
   \E[G]
   =K,
@@ -104,3 +125,7 @@ The same $L/N$ appears for nonlinear $\ph$ at criticality, with a different $O(1
 \begin{exercise}
 Derive~\eqref{eq:var-rec} from~\eqref{eq:wick} for $z=N^{-1/2}Wh$ with $W_{ij}\sim\mathcal{N}(0,1)$ independent of $h$.
 \end{exercise}
+\begin{solution}
+Condition on $h$ and write $G=N^{-1}\|h\|^2$. Rows of $W$ are independent, so $z_i\mid h\sim\mathcal{N}(0,G)$ iid. Then $G'=N^{-1}\sum_i z_i^2$ has $\E[G'\mid h]=G$. Wick for a centred Gaussian is $\E[z_i^4\mid h]=3G^2$ and $\E[z_i^2 z_j^2\mid h]=G^2$ for $i\neq j$, which is~\eqref{eq:G2}. Unconditioning produces~\eqref{eq:var-exact}; dropping the $O(N^{-2})$ term yields~\eqref{eq:var-rec}.
+\ansbox{$\Var(G')=\Var(G)+2K^2/N$ at leading order in $1/N$, since $\E[z^4]=3G^2$ contributes the extra $2G^2/N$.}
+\end{solution}

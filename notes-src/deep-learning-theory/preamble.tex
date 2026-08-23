@@ -34,7 +34,18 @@
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 \newtheorem{remark}{Remark}[section]
-\newtheorem*{exercise}{Exercise}
+\newtheorem{exercise}{Exercise}[section]
+
+\newenvironment{solution}{%
+  \par\medskip\noindent\textit{Solution.}\enspace
+}{\par\medskip}
+
+\newcommand{\ansbox}[1]{%
+  \par\smallskip
+  \noindent
+  \fbox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{\textbf{Answer.} #1}}%
+  \par\smallskip
+}
 
 \theoremstyle{plain}
 \newtheorem{proposition}{Proposition}[section]

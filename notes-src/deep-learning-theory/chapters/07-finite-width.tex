@@ -30,22 +30,32 @@ Along a parameter direction $u$,
   +J(x)\cdot H(x')\,u.
   \label{eq:dntk}
 \end{equation}
-The trilinear kernel
+The \emph{trilinear} kernel
 \begin{equation}
   D(x,x',x'')
   \equiv
   \partial_\theta\Theta(x,x')\cdot\partial_\theta f(x'')
+  =J(x'')^\top H(x)\,J(x')
+  +J(x)\cdot H(x')\,J(x'')
   \label{eq:dntk-def}
 \end{equation}
-is the dNTK~\cite{roberts2022pdlt}. It vanishes for a linear model ($H=0$). In NTK scaling $\delta\theta=O(N^{-1/2})$, so $D$ does not move $\Theta$ by an $O(1)$ amount. At finite $N$, one GD step of size $\eta$ updates the kernel by
+is the dNTK~\cite{roberts2022pdlt}. It vanishes for a linear model ($H=0$).
+
+Chain rule on $\Theta$ along gradient flow~\eqref{eq:gd-gf}, using $\Delta_\mu=y_\mu-f_\mu$ and $\nabla_\theta\loss=-P^{-1}\sum_\mu\Delta_\mu J(x_\mu)$,
+\begin{equation}
+  \partial_t\Theta(x,x')
+  =\partial_\theta\Theta(x,x')\cdot\partial_t\theta
+  =\frac{\eta}{P}\sum_{\mu} D(x,x',x_\mu)\,\Delta_\mu.
+  \label{eq:dtheta-cont}
+\end{equation}
+One GD step of size $\eta$ is the same statement at $O(\eta)$:
 \begin{equation}
   \Delta\Theta(x,x')
-  =-\frac{\eta}{P}\sum_{\mu} D(x,x',x_\mu)\,\Delta_\mu
+  =\frac{\eta}{P}\sum_{\mu} D(x,x',x_\mu)\,\Delta_\mu
   +O(\eta^2).
   \label{eq:dtheta}
 \end{equation}
-
-The first layer of an MLP contributes $D^{(1)}=0$ (the map $x\mapsto W^{(1)}x$ is linear in $W^{(1)}$). Each subsequent layer sources a nonzero $D$ from $\ddot\ph$ and from products of earlier $\Theta$'s. After $L$ layers at criticality, $D=O(L)$, hence
+In NTK scaling $\delta\theta=O(N^{-1/2})$, so $D$ does not move $\Theta$ by an $O(1)$ amount. The first layer of an MLP contributes $D^{(1)}=0$ (the map $x\mapsto W^{(1)}x$ is linear in $W^{(1)}$). Each subsequent layer sources a nonzero $D$ from $\ddot\ph$ and from products of earlier $\Theta$'s. After $L$ layers at criticality, $D=O(L)$, hence
 \begin{equation}
   \frac{\Delta\Theta}{\Theta}
   =O\!\left(\frac{L}{N}\right)
@@ -55,19 +65,60 @@ for NTK-scaled GD with $\eta=O(1)$. The same ratio is $O(1)$ in $\mu$P at infini
 
 \subsection{Nearly-kernel prediction}
 
-Keeping the quadratic term in~\eqref{eq:taylor} and going to a stationary point of square loss, the trained predictor is, to first order in $D$,
+Keep the quadratic term in~\eqref{eq:taylor} and take a stationary point of square loss at which the linear problem interpolates. The linear (NTK) solution is
+\begin{equation}
+  \delta\theta_0
+  =\sum_{\mu=1}^{P}\alpha_\mu J(x_\mu),
+  \qquad
+  \alpha=\hat\Theta^{-1}\bigl(y-F(0)\bigr),
+  \label{eq:dtheta-lin}
+\end{equation}
+which is~\eqref{eq:ridgeless} in parameter space. The quadratic correction at a test point is then
+\begin{equation}
+  \tfrac12\,\delta\theta_0^\top H(x)\,\delta\theta_0
+  =\tfrac12\sum_{\mu\nu}\alpha_\mu\alpha_\nu\, J(x_\mu)^\top H(x)\,J(x_\nu).
+  \label{eq:quad-corr}
+\end{equation}
+The first summand of~\eqref{eq:dntk-def} is exactly $J(x_\mu)^\top H(x)\,J(x_\nu)$, so
 \begin{equation}
   f(x;\infty)
   =f_{\mathrm{NTK}}(x)
-  +\frac1{2P^2}\sum_{\mu\nu}
-  D(x,x_\mu,x_\nu)\,c_{\mu\nu}
-  +O\bigl((L/N)^2\bigr),
+  +\frac12\sum_{\mu\nu}\alpha_\mu\alpha_\nu\,
+  \bigl(D(x,x_\mu,x_\nu)-J(x)\cdot H(x_\mu)J(x_\nu)\bigr)
+  +O\bigl(\|\delta\theta\|^3\bigr).
   \label{eq:nearly-kernel}
 \end{equation}
-where $c_{\mu\nu}$ is bilinear in the training residuals of the linear problem~\cite{roberts2022pdlt}. Predictions are still determined by a finite collection of kernels $(\Theta,D)$.
+Predictions are still determined by a finite collection of kernels $(\Theta,D)$ together with the Hessian contracted against the NTK coefficients. The omitted $J(x)\cdot H(x_\mu)J(x_\nu)$ piece is the variation of the training Jacobians; it is the same order as $D$.
 
 The kernel picture is accurate when $L/N\ll 1$ and $d<\tfrac12$. Representation learning is $O(1)$ when $L/N=O(1)$, or when $d=\tfrac12$ with $\gamma_0=O(1)$. At fixed compute the useful aspect ratio is an $O(1)$ value of $L/N$: large enough that $D$ can move features, small enough that the $L/N$ expansion remains under control.
 
 \begin{exercise}
-For $f(x)=\tfrac12 A x^2$ with scalar $x$ and parameter $A$, compute $\Theta$ and $D$, and verify~\eqref{eq:dtheta} for one GD step.
+For $f(x)=\tfrac12\theta^2 x^2$ with scalar $x$ and parameter $\theta$, compute $\Theta$ and $D$, and verify~\eqref{eq:dtheta} for one GD step.
 \end{exercise}
+\begin{solution}
+Jacobians: $J(x)=\partial_\theta f=\theta x^2$ and $H(x)=\partial_\theta^2 f=x^2$. The NTK is
+\[
+  \Theta(x,x')=J(x)J(x')=\theta^2 x^2 x'^2.
+\]
+The dNTK is
+\[
+  D(x,x',x'')
+  =\partial_\theta\Theta(x,x')\,J(x'')
+  =(2\theta x^2 x'^2)(\theta x''^2)
+  =2\theta^2 x^2 x'^2 x''^2.
+\]
+One GD step on~\eqref{eq:sq-loss} updates $\theta\leftarrow\theta-\eta P^{-1}\sum_\mu(f_\mu-y_\mu)J_\mu$, i.e.
+\[
+  \Delta\theta
+  =\frac{\eta}{P}\sum_{\mu}\Delta_\mu\,(\theta x_\mu^2),
+  \qquad \Delta_\mu=y_\mu-f_\mu.
+\]
+The NTK changes as $\Delta\Theta(x,x')=((\theta+\Delta\theta)^2-\theta^2)x^2 x'^2=(2\theta\Delta\theta+(\Delta\theta)^2)x^2 x'^2$. The $O(\eta)$ piece is
+\[
+  2\theta\Delta\theta\, x^2 x'^2
+  =\frac{\eta}{P}\sum_{\mu}(2\theta^2 x^2 x'^2 x_\mu^2)\Delta_\mu
+  =\frac{\eta}{P}\sum_{\mu} D(x,x',x_\mu)\,\Delta_\mu,
+\]
+which is~\eqref{eq:dtheta}. (The linear model $f=\tfrac12 A x^2$ in the parameter $A$ has $H=0$ and $D=0$; the $\theta^2$ parameterization is the minimal example with a nonzero dNTK.)
+\ansbox{$\Theta=\theta^2 x^2 x'^2$, $D=2\theta^2 x^2 x'^2 x''^2$. One GD step reproduces~\eqref{eq:dtheta} at $O(\eta)$.}
+\end{solution}

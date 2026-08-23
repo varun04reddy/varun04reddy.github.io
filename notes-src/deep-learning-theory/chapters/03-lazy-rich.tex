@@ -1,7 +1,7 @@
 \section{Lazy versus rich parameterization}
 \label{sec:lazy}
 
-Whether $K(t)$ stays at $K(0)$ is a scaling question~\cite{chizat2019lazy,yang2021mup,pehlevan2023infinite}. Write
+Whether $K(t)$ stays at $K(0)$ is a scaling question~\cite{pehlevan2023infinite}. Write
 \begin{align}
   h^{(1)}_\mu &= N^{-a_1} W^{(1)} x_\mu, &
   h^{(\ell+1)}_\mu &= N^{-a_{\ell+1}} W^{(\ell+1)}\ph\!\big(h^{(\ell)}_\mu\big), &
@@ -117,5 +117,29 @@ Chizat's diagnostic: training $\alpha f(\theta/\alpha)$ as $\alpha\to\infty$ lin
 \end{figure}
 
 \begin{exercise}
-For $f=\gamma_0^{-1}N^{-1/2}v\cdot\ph(Wx/\sqrt{D})$ and $c=0$, compute the $N$-scaling of $\partial_t W$ and $\partial_t v$. Recover $d=\tfrac12$ as the condition that $W$ moves by $\ON{1}$.
+Take $\gamma=\gamma_0 N^d$, $\eta=\eta_0\gamma_0^2 N^{2d}$ (i.e.\ $c=0$), and
+\[
+  f=\bigl(\gamma_0 N^d\sqrt{N}\bigr)^{-1} v\cdot\ph(Wx/\sqrt{D}),
+\]
+with $v_i,W_{ij}=\ON{1}$. Compute the $N$-scaling of $\partial_t W$ and $\partial_t v$. Recover $d=\tfrac12$ as the condition that $W$ moves by $\ON{1}$.
 \end{exercise}
+\begin{solution}
+Write $s=(\gamma_0 N^d\sqrt{N})^{-1}$ and $h=Wx/\sqrt{D}$, so $f=s\,v\cdot\ph(h)$. Jacobians:
+\[
+  \partial_{v_i}f=s\,\ph(h_i),\qquad
+  \partial_{W_{ij}}f=s\,v_i\dot\ph(h_i)\,x_j/\sqrt{D}.
+\]
+Gradient flow on~\eqref{eq:sq-loss} is $\partial_t\theta=-\eta P^{-1}\sum_\mu(f_\mu-y_\mu)\partial_\theta f_\mu$, i.e.\ $\partial_t\theta=(\eta/P)\sum_\mu\Delta_\mu\partial_\theta f_\mu$. The prefactor is
+\[
+  \frac{\eta s}{P}
+  =\frac{\eta_0\gamma_0^2 N^{2d}}{P}\cdot\frac{1}{\gamma_0 N^d\sqrt{N}}
+  =\frac{\eta_0\gamma_0}{P}\,N^{d-1/2}.
+\]
+With $\Delta,\ph,v,x=\ON{1}$,
+\[
+  \partial_t v_i=\ON{N^{d-1/2}},\qquad
+  \partial_t W_{ij}=\ON{N^{d-1/2}}.
+\]
+An $O_N(1)$ change in $W$ over $O(1)$ time requires $d-\tfrac12=0$, i.e.\ $d=\tfrac12$. For $d=0$ both increments are $\ON{N^{-1/2}}$ and the hidden features freeze.
+\ansbox{$\partial_t v,\partial_t W=\ON{N^{d-1/2}}$. Hidden weights move by $\ON{1}$ iff $d=\tfrac12$.}
+\end{solution}
