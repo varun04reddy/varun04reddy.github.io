@@ -53,7 +53,16 @@ Diagonalize $\hat K=U\Lambda U^\top$, $\Lambda=\mathrm{diag}(\lambda_i)$. In the
   F'_i(t)=y'_i+e^{-(\eta\lambda_i/P)t}\bigl(F'_i(0)-y'_i\bigr).
   \label{eq:mode-ode}
 \end{equation}
-Mode $i$ trains on the timescale $P/(\eta\lambda_i)$. Transforming back,
+Mode $i$ trains on the timescale $P/(\eta\lambda_i)$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\textwidth]{fig08_modes.pdf}
+\caption{Eigenmodes of a frozen kernel. Residual of mode $i$ decays as $e^{-(\eta\lambda_i/P)t}$.}
+\label{fig:modes}
+\end{figure}
+
+Transforming back,
 \begin{equation}
   F(t)
   =y+e^{-(\eta/P)\hat K\, t}\bigl(F(0)-y\bigr)
@@ -92,7 +101,7 @@ and
   K_\Phi(x,x')=\Phi(x)\cdot\Phi(x').
   \label{eq:lin-fn}
 \end{equation}
-The NTK of a linear model \emph{is} $K_\Phi$, and it cannot move. Adding $\tfrac{\lambda}{2}\|w\|^2$ to the loss replaces $\hat K^{-1}$ by $(\hat K+\lambda I)^{-1}$.
+The NTK of a linear model \emph{is} $K_\Phi$, and it cannot move. Adding $\tfrac{\lambda}{2}\|w\|^2$ to~\eqref{eq:sq-loss} replaces $\hat K^{-1}$ by $(\hat K+\lambda P I)^{-1}$; see~\S\ref{sec:gen}.
 
 \subsection{Two-layer NTK}
 
@@ -123,13 +132,33 @@ The first term is the feature kernel $\Phi$. The second is the contribution of t
 \begin{theorem}[Cybenko, Hornik]
 If $\ph$ is continuous, bounded, and nonconstant, then shallow nets $x\mapsto\sum_{i=1}^{N}v_i\ph(w_i\cdot x+b_i)$ are dense in $C([0,1]^D)$ in the uniform norm.
 \end{theorem}
-Density does not control the number of neurons. For ReLU nets of depth $L$ and width $N$ on $N_0$ inputs, the number of linear regions is at least~\cite{montufar2014regions}
+Density does not control the number of neurons. For ReLU nets of depth $L$ and width $N$ on $N_0$ inputs, each hidden unit folds the input space along a hyperplane. A lower bound on the number of linear regions is
 \begin{equation}
   \Omega\!\left(\left(\frac{N}{N_0}\right)^{(L-1)N_0} N^{N_0}\right).
   \label{eq:regions}
 \end{equation}
-A matched-parameter shallow net ($L=1$, width $NL$) has only $O(N^{N_0}L^{N_0})$ regions. Depth buys exponentially many linear pieces per parameter.
+A matched-parameter shallow net ($L=1$, width $NL$) has only $O\bigl((NL)^{N_0}\bigr)$ regions. Depth buys exponentially many linear pieces per parameter.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\textwidth]{fig09_regions.pdf}
+\caption{Lower bound~\eqref{eq:regions} versus a shallow net with the same number of units $NL$, for $N_0=2$, $N=16$.}
+\label{fig:regions}
+\end{figure}
 
 \begin{exercise}
 Starting from~\eqref{eq:train-ode}, derive~\eqref{eq:F-sol} by expanding $F$ in the eigenbasis of $\hat K$. What is the training time of a mode with kernel eigenvalue $\lambda$?
 \end{exercise}
+\begin{solution}
+Let $\hat K=U\Lambda U^\top$ with $\Lambda=\mathrm{diag}(\lambda_i)$ and set $F'=U^\top F$, $y'=U^\top y$. Substitute into~\eqref{eq:train-ode}:
+\[
+  \partial_t F'
+  =\frac{\eta}{P}\Lambda(y'-F'),
+\]
+which decouples: $\partial_t F'_i=(\eta\lambda_i/P)(y'_i-F'_i)$. The ODE $\dot u=-a(u-b)$ with $a=\eta\lambda_i/P$ and $b=y'_i$ integrates to
+\[
+  F'_i(t)=y'_i+e^{-(\eta\lambda_i/P)t}\bigl(F'_i(0)-y'_i\bigr).
+\]
+In matrix form $F'(t)=y'+e^{-(\eta/P)\Lambda t}(F'(0)-y')$. Multiplying by $U$ and using $U e^{-(\eta/P)\Lambda t}U^\top=e^{-(\eta/P)\hat K t}$ gives~\eqref{eq:F-sol}. Mode $i$ has time constant $P/(\eta\lambda_i)$.
+\ansbox{$F(t)=y+e^{-(\eta/P)\hat K t}(F(0)-y)$. Mode with eigenvalue $\lambda$ trains on the timescale $P/(\eta\lambda)$.}
+\end{solution}

@@ -58,3 +58,14 @@ so $\partial\loss/\partial f_\mu=(f_\mu-y_\mu)/P$. Gradient descent and its grad
 \begin{exercise}
 Verify $\E_{\data}[\hat R_{\data}(h)]=R(h)$ from~\eqref{eq:risks}. Where does the argument use that $h$ does not depend on $\data$?
 \end{exercise}
+\begin{solution}
+Write $\hat R_{\data}(h)=P^{-1}\sum_{\mu=1}^{P}\ell(h(x_\mu),y_\mu)$. Then
+\[
+  \E_{\data}[\hat R_{\data}(h)]
+  =\frac1P\sum_{\mu=1}^{P}\E_{(x_\mu,y_\mu)}\bigl[\ell(h(x_\mu),y_\mu)\bigr]
+  =\E_{(x,y)\sim P}\bigl[\ell(h(x),y)\bigr]
+  =R(h),
+\]
+using identical distribution of the samples. The first equality pulls $h$ out of the sample-wise expectation: that is legal only if $h$ is non-random with respect to $\data$. If $h=h_{\data}$, then $\ell(h_{\data}(x_\mu),y_\mu)$ is correlated with the whole sample and the identity fails.
+\ansbox{$\E_{\data}[\hat R_{\data}(h)]=R(h)$ for fixed $h$. The identity uses that $h$ does not depend on $\data$.}
+\end{solution}

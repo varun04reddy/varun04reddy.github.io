@@ -49,6 +49,13 @@ The data enter only through the Gram matrix $G_{\mu\nu}=x_\mu\cdot x_\nu$. The c
   \label{eq:svm-pred}
 \end{equation}
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\textwidth]{fig06_margin.pdf}
+\caption{Hard-margin SVM in $\R^2$. Solid line: $w\cdot x+b=0$. Dashed: $w\cdot x+b=\pm 1$. Circled points are the support vectors.}
+\label{fig:margin}
+\end{figure}
+
 \subsection{The kernel trick}
 
 If $\{(x_\mu,y_\mu)\}$ is not linearly separable in $\R^{D}$, lift through a feature map $\Phi:\R^{D}\to\R^{M}$, $M\ge D$, and run the same SVM on $\Phi(x)$. The dual~\eqref{eq:svm-dual} and the predictor~\eqref{eq:svm-pred} depend on $\Phi$ only through
@@ -67,9 +74,9 @@ The associated feature map is $\Phi(x)_k=\sqrt{\lambda_k}\,\psi_k(x)$, possibly 
 Any minimizer of $\hat R_{\data}(h)+\lambda\|h\|_{\mathcal{H}_K}^2$ over the RKHS of $K$ is of the form
 $h(\,\cdot\,)=\sum_{\mu=1}^{P}c_\mu K(x_\mu,\,\cdot\,)$.
 \end{theorem}
-The coefficients $c\in\R^{P}$ are the only degrees of freedom. Kernel ridge regression is the square-loss case,
+The coefficients $c\in\R^{P}$ are the only degrees of freedom. Kernel ridge with the square loss~\eqref{eq:sq-loss} plus $\tfrac\lambda2\|w\|^2$ is derived in~\S\ref{sec:gen}:
 \begin{equation}
-  f(x)=k(x)^\top(\hat K+\lambda I)^{-1} y,
+  f(x)=k(x)^\top(\hat K+\lambda P I)^{-1} y,
   \qquad
   \hat K_{\mu\nu}=K(x_\mu,x_\nu),\quad
   k(x)_\mu=K(x,x_\mu).
@@ -91,14 +98,43 @@ defines, at initialization, the kernel
   =\E_{w}\bigl[\ph(w\cdot x)\ph(w\cdot x')\bigr].
   \label{eq:nngp-shallow}
 \end{equation}
-For $\ph(z)=\max(z,0)$ this is the Cho--Saul arc-cosine kernel~\cite{cho2009kernel}. Let $c=x\cdot x'/(\|x\|\|x'\|)$ and $\vartheta=\arccos c$. Then
+For $\ph(z)=\max(z,0)$ this is the Cho--Saul kernel. Derive it as follows. Let $w\sim\mathcal{N}(0,I)$, set $u=\hat x\cdot w$ and $u'=\hat x'\cdot w$ with $\hat x=x/\|x\|$, and write $\vartheta=\arccos(\hat x\cdot\hat x')$. Then $(u,u')$ is a standard bivariate Gaussian with correlation $\cos\vartheta$, equivalently the two coordinates of a 2d standard Gaussian $g$ in the plane of $(\hat x,\hat x')$:
+\begin{equation}
+  u=\rho\cos\phi,\qquad u'=\rho\cos(\phi-\vartheta),\qquad
+  g=(\rho\cos\phi,\rho\sin\phi).
+\end{equation}
+ReLU is supported on $u>0$, $u'>0$, a wedge of opening $\pi-\vartheta$, namely $\phi\in(\vartheta-\pi/2,\pi/2)$. The Gaussian measure on the plane is $e^{-\rho^2/2}\,\rho\,\dd\rho\,\dd\phi/(2\pi)$, so
+\begin{equation}
+  \E[u_+u'_+]
+  =\int_{\vartheta-\pi/2}^{\pi/2}\!\dd\phi
+  \int_0^\infty\!\dd\rho\
+  \frac{\rho^3 e^{-\rho^2/2}}{2\pi}\,\cos\phi\cos(\phi-\vartheta).
+\end{equation}
+The radial integral is $\int_0^\infty\rho^3 e^{-\rho^2/2}\,\dd\rho=2$. For the angle, $\cos\phi\cos(\phi-\vartheta)=\tfrac12\bigl(\cos(2\phi-\vartheta)+\cos\vartheta\bigr)$, so
+\begin{equation}
+  \int_{\vartheta-\pi/2}^{\pi/2}\cos\phi\cos(\phi-\vartheta)\,\dd\phi
+  =\Bigl[\tfrac14\sin(2\phi-\vartheta)+\tfrac\phi2\cos\vartheta\Bigr]_{\vartheta-\pi/2}^{\pi/2}
+  =\tfrac12\bigl(\sin\vartheta+(\pi-\vartheta)\cos\vartheta\bigr).
+\end{equation}
+Hence $\E[u_+u'_+]=(2\pi)^{-1}\bigl(\sin\vartheta+(\pi-\vartheta)\cos\vartheta\bigr)$. Scaling back $w\sim\mathcal{N}(0,D^{-1}I)$ multiplies by $\|x\|\|x'\|/D$:
 \begin{equation}
   \E\bigl[\ph(w\cdot x)\ph(w\cdot x')\bigr]
-  =\frac{\|x\|\|x'\|}{2\pi}\bigl(\sin\vartheta+(\pi-\vartheta)\cos\vartheta\bigr).
+  =\frac{\|x\|\|x'\|}{2\pi D}\bigl(\sin\vartheta+(\pi-\vartheta)\cos\vartheta\bigr).
   \label{eq:cho-saul}
 \end{equation}
 Deeper random nets compose this expectation layer by layer: that is the NNGP recursion below.
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\textwidth]{fig07_chosaul.pdf}
+\caption{Unit-variance Cho--Saul factor $\E[u_+u'_+]=(2\pi)^{-1}(\sin\vartheta+(\pi-\vartheta)\cos\vartheta)$ as a function of the angle between $x$ and $x'$.}
+\label{fig:chosaul}
+\end{figure}
+
 \begin{exercise}
 From~\eqref{eq:kkt}, show that if $x_\mu$ is not a support vector then $\alpha_\mu=0$. Conclude that $w$ is a linear combination of the support vectors only.
 \end{exercise}
+\begin{solution}
+Complementary slackness in~\eqref{eq:kkt} is $\alpha_\mu\bigl(y_\mu(w\cdot x_\mu+b)-1\bigr)=0$. If $x_\mu$ is not a support vector the inequality is slack, $y_\mu(w\cdot x_\mu+b)>1$, so the second factor is nonzero and therefore $\alpha_\mu=0$. The stationarity condition $w=\sum_{\nu}\alpha_\nu y_\nu x_\nu$ then retains only those $\nu$ with $\alpha_\nu\neq 0$, i.e.\ the support vectors.
+\ansbox{$x_\mu$ not on the margin $\Rightarrow$ $\alpha_\mu=0$, hence $w=\sum_{\mathrm{SV}}\alpha_\nu y_\nu x_\nu$.}
+\end{solution}

@@ -1,7 +1,5 @@
 \section{Definitions}
 
-Short definitions for objects that appear above. Standard linear-algebra vocabulary is assumed.
-
 \begin{description}[style=nextline,leftmargin=1.1em,itemsep=0.55em,font=\normalfont\bfseries]
 
 \item[Gram matrix.]
@@ -22,6 +20,14 @@ Empirical-risk minimizers in $\mathcal{H}_K$ with an RKHS-norm penalty lie in $\
 \item[Support vector.]
 A training point with nonzero dual coefficient $\alpha_\mu$ in~\eqref{eq:kkt}. Complementary slackness puts it on the margin. The max-margin hyperplane is a linear combination of support vectors only.
 
+\item[Cho--Saul formula.]
+The kernel of a random ReLU feature $\ph(z)=\max(z,0)$. For $w\sim\mathcal{N}(0,D^{-1}I)$ and $\vartheta=\arccos\bigl(x\cdot x'/(\|x\|\|x'\|)\bigr)$,
+\[
+  \E\bigl[\ph(w\cdot x)\ph(w\cdot x')\bigr]
+  =\frac{\|x\|\|x'\|}{2\pi D}\bigl(\sin\vartheta+(\pi-\vartheta)\cos\vartheta\bigr).
+\]
+This is~\eqref{eq:cho-saul}. The NNGP recursion for deep ReLU nets is the iteration of this map.
+
 \item[Gradient flow.]
 The ODE $\dot\theta=-\eta\nabla_\theta\loss(\theta)$, the $\eta\to 0$ limit of gradient descent. In these notes, the source of all training dynamics.
 
@@ -33,6 +39,9 @@ Neural network Gaussian process: the $N\to\infty$ law of $f(\,\cdot\,;\theta)$ a
 
 \item[Neural tangent kernel.]
 $K(x,x';t)=\partial_\theta f(x;t)\cdot\partial_\theta f(x';t)$. The metric that makes gradient flow on $\theta$ into an ODE on functions~\eqref{eq:fn-ode}. Frozen if features do not move.
+
+\item[Trilinear kernel.]
+A scalar $T(x,x',x'')$ linear in each slot. The dNTK $D(x,x',x'')=\partial_\theta\Theta(x,x')\cdot\partial_\theta f(x'')$ is trilinear in the Jacobians and Hessians of $f$: it contracts $H(x)$, $J(x')$, and $J(x'')$.
 
 \item[Order parameter.]
 A macroscopic summary (here $\Phi$, $G$, $K$, $\Theta$) that concentrates as $N\to\infty$. The microscopic weights fluctuate; the order parameters obey a closed equation.

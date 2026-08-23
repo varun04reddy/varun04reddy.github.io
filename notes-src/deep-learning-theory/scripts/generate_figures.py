@@ -321,12 +321,145 @@ def fig05_kernel_learning() -> None:
     save(fig, "fig05_kernel_learning.pdf")
 
 
+def fig06_margin() -> None:
+    from scipy.optimize import minimize
+
+    rng = np.random.default_rng(4)
+    xp = rng.normal(loc=(1.7, 0.2), scale=0.26, size=(12, 2))
+    xn = rng.normal(loc=(-1.7, -0.2), scale=0.26, size=(12, 2))
+    X = np.vstack([xp, xn])
+    y = np.concatenate([np.ones(len(xp)), -np.ones(len(xn))])
+    P = len(y)
+    Q = (y[:, None] * y[None, :]) * (X @ X.T)
+
+    def obj(a: np.ndarray) -> float:
+        return 0.5 * float(a @ Q @ a) - float(a.sum())
+
+    def jac(a: np.ndarray) -> np.ndarray:
+        return Q @ a - 1.0
+
+    cons = {"type": "eq", "fun": lambda a: float(a @ y), "jac": lambda a: y}
+    bounds = [(0.0, None)] * P
+    a0 = np.full(P, 1.0 / P)
+    res = minimize(
+        obj, a0, jac=jac, bounds=bounds, constraints=cons, method="SLSQP",
+        options={"ftol": 1e-14, "maxiter": 800, "disp": False},
+    )
+    a = np.maximum(res.x, 0.0)
+    sv = a > 1e-4 * a.max()
+    w = (a * y) @ X
+    b = float(np.median(y[sv] - X[sv] @ w))
+    fig, ax = plt.subplots(figsize=(4.6, 4.2))
+    ax.scatter(xp[:, 0], xp[:, 1], c="#1f4e79", s=28, label=r"$y=+1$")
+    ax.scatter(xn[:, 0], xn[:, 1], c="#c44e52", s=28, label=r"$y=-1$")
+    ax.scatter(X[sv, 0], X[sv, 1], facecolors="none", edgecolors="k", s=90, lw=1.1, label="support")
+    ts = np.linspace(-4.5, 4.5, 200)
+    w_hat = w / (np.linalg.norm(w) + 1e-12)
+    t_hat = np.array([-w_hat[1], w_hat[0]])
+    # a point on the hyperplane w·x + b = 0
+    x0 = -b * w / (np.dot(w, w) + 1e-12)
+    for level, ls, lw in ((0.0, "-", 1.6), (1.0, "--", 0.9), (-1.0, "--", 0.9)):
+        # w·x + b = level  ⇒  shift along w by (level)/||w||²
+        shift = (level) * w / (np.dot(w, w) + 1e-12)
+        pts = x0 + shift + ts[:, None] * t_hat
+        ax.plot(pts[:, 0], pts[:, 1], color="k", lw=lw, ls=ls)
+    ax.set_xlim(-3.2, 3.2)
+    ax.set_ylim(-3.2, 3.2)
+    ax.set_aspect("equal")
+    ax.set_xlabel(r"$x_1$")
+    ax.set_ylabel(r"$x_2$")
+    ax.set_title("max-margin hyperplane")
+    ax.legend(frameon=False, loc="upper left", fontsize=8)
+    save(fig, "fig06_margin.pdf")
+
+
+def fig07_chosaul() -> None:
+    th = np.linspace(0.0, np.pi, 300)
+    k = (np.sin(th) + (np.pi - th) * np.cos(th)) / (2.0 * np.pi)
+    fig, ax = plt.subplots(figsize=(5.2, 3.3))
+    ax.plot(th, k, color="#1f4e79", lw=1.9)
+    ax.set_xlabel(r"$\vartheta=\arccos(x\cdot x'/\|x\|\|x'\|)$")
+    ax.set_ylabel(r"$K(x,x')/(\|x\|\|x'\|)$")
+    ax.set_title(r"Cho--Saul kernel, $\varphi=\mathrm{ReLU}$")
+    ax.set_xlim(0, np.pi)
+    ax.set_xticks([0, np.pi / 2, np.pi])
+    ax.set_xticklabels([r"$0$", r"$\pi/2$", r"$\pi$"])
+    save(fig, "fig07_chosaul.pdf")
+
+
+def fig08_modes() -> None:
+    t = np.linspace(0, 8, 400)
+    fig, ax = plt.subplots(figsize=(5.2, 3.3))
+    for lam, c in zip([2.0, 0.6, 0.15], ["#1f4e79", "#c44e52", "#55a868"]):
+        ax.plot(t, np.exp(-lam * t), color=c, lw=1.8, label=rf"$\lambda={lam}$")
+    ax.set_xlabel(r"$(\eta/P)\,t$")
+    ax.set_ylabel(r"$e^{-\lambda t}$")
+    ax.set_title("frozen-kernel mode decay")
+    ax.legend(frameon=False)
+    save(fig, "fig08_modes.pdf")
+
+
+def fig10_relu_crit() -> None:
+    """Cho--Saul recursion of the kernel cosine for ReLU, C_b=0."""
+    def step(q: float, c: float, cw: float) -> tuple[float, float]:
+        th = float(np.arccos(np.clip(c, -1.0, 1.0)))
+        k12 = cw * q * (np.sin(th) + (np.pi - th) * np.cos(th)) / (2.0 * np.pi)
+        qn = cw * q / 2.0
+        return float(qn), float(np.clip(k12 / max(qn, 1e-16), -1.0, 1.0))
+
+    depths = np.arange(0, 31)
+    fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.35))
+    for label, cw in {
+        r"subcritical $C_W=1.5$": 1.5,
+        r"critical $C_W=2$": 2.0,
+        r"supercritical $C_W=2.5$": 2.5,
+    }.items():
+        q, c = 1.0, 0.5
+        qs, cs = [q], [c]
+        for _ in depths[1:]:
+            q, c = step(q, c, cw)
+            qs.append(q)
+            cs.append(c)
+        axes[0].plot(depths, qs, lw=1.8, label=label)
+        axes[1].plot(depths, cs, lw=1.8, label=label)
+    axes[0].set_xlabel(r"layer $\ell$")
+    axes[0].set_ylabel(r"$K^{(\ell)}(x,x)$")
+    axes[0].set_title(r"kernel variance, ReLU")
+    axes[0].set_yscale("log")
+    axes[1].set_xlabel(r"layer $\ell$")
+    axes[1].set_ylabel(r"kernel cosine")
+    axes[1].set_title(r"init $c=0.5$")
+    axes[0].legend(frameon=False, fontsize=7.5)
+    fig.tight_layout()
+    save(fig, "fig10_relu_crit.pdf")
+
+
+def fig09_regions() -> None:
+    N0, N = 2, 16
+    L = np.arange(1, 8)
+    deep = (N / N0) ** ((L - 1) * N0) * (N ** N0)
+    shallow = (N * L) ** N0
+    fig, ax = plt.subplots(figsize=(5.2, 3.3))
+    ax.semilogy(L, deep, "o-", lw=1.7, label=rf"depth $L$, width $N={N}$")
+    ax.semilogy(L, shallow, "s--", lw=1.7, label=rf"depth $1$, width $NL$")
+    ax.set_xlabel(r"depth $L$")
+    ax.set_ylabel(r"linear regions (lower bound)")
+    ax.set_title(rf"ReLU, $N_0={N0}$ inputs")
+    ax.legend(frameon=False)
+    save(fig, "fig09_regions.pdf")
+
+
 def main() -> None:
     fig01_ntk_freeze()
     fig02_lazy_rich()
     fig03_criticality()
     fig04_finite_width()
     fig05_kernel_learning()
+    fig06_margin()
+    fig07_chosaul()
+    fig08_modes()
+    fig09_regions()
+    fig10_relu_crit()
 
 
 if __name__ == "__main__":
