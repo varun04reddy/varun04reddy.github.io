@@ -11,13 +11,13 @@ profile:
 
 news: true # includes a list of news items
 selected_papers: true # includes a list of papers marked as "selected={true}"
-selected_papers_heading: "Selected Works"
+selected_papers_heading: "Selected Work"
 social: true # includes social icons at the bottom of the page
 ---
 
-My research interests center on intelligence, emergence, and learning theory. At the moment, I am using tools from neural computation, statistical mechanics, and deep learning theory to study how high-dimensional learning systems form representations, adapt over time, and relate to computation in the brain.
+My research interests center on intelligence, emergence, and learning theory. At the moment, I am using tools from neural computation to study how high-dimensional learning systems form representations and adapt over time.
 
-I'm currently exploring these questions at the [Harvard Kempner Institute](https://kempnerinstitute.harvard.edu/) under [Bernardo Sabatini](https://sabatini.hms.harvard.edu/). Previously, I studied Computer Science in the School of Engineering at the [University of Virginia](https://www.virginia.edu/), where I was grateful to work with [Yen-Ling Kuo](https://yenlingkuo.com/) on mechanistic interpretability and knowledge editing, and with [Laura Barnes](https://engineering.virginia.edu/faculty/laura-barnes) on AI for healthcare.
+I'm currently exploring these questions at the [Harvard Kempner Institute](https://kempnerinstitute.harvard.edu/) under [Bernardo Sabatini](https://sabatini.hms.harvard.edu/). Previously, I studied Computer Science in the School of Engineering at the [University of Virginia](https://www.virginia.edu/), where I was grateful to work with [Yen-Ling Kuo](https://yenlingkuo.com/) on mechanistic interpretability, and with [Laura Barnes](https://engineering.virginia.edu/faculty/laura-barnes) on AI for healthcare.
 
 During undergrad, I also worked at Chess.com as part of the [Fair Play R&D team](https://www.chess.com/blog/FairPlay), where I developed statistical learning models to detect overperformance in online chess play. I also spent time at Caltech in [Dean Mobbs](https://www.hss.caltech.edu/people/dean-mobbs)' computational cognitive neuroscience group, where I first formally studied the brain.
 

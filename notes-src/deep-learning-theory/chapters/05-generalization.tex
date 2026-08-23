@@ -1,0 +1,78 @@
+\section{Generalization in the lazy regime}
+\label{sec:gen}
+
+Once $K$ is frozen, training is kernel ridge~\eqref{eq:ridge}. Three views of the same estimator, following~\cite{hastie2022surprises} and the ridge lectures in APMTH 226.
+
+\subsection{Three views of ridge}
+
+Let $X\in\R^{P\times M}$ be a design (rows $\Phi(x_\mu)^\top$), $y\in\R^{P}$, and
+\begin{equation}
+  \hat w
+  =\argmin_w\ \frac1{2P}\|Xw-y\|^2+\frac\lambda2\|w\|^2
+  =\frac1P\Bigl(\frac1P X^\top X+\lambda I\Bigr)^{-1} X^\top y.
+  \label{eq:ridge-primal}
+\end{equation}
+\emph{Interpolation.} If $P>M$ and $\lambda\downarrow 0$, this is ordinary least squares, $\hat w=(X^\top X)^{-1}X^\top y$. If $P<M$, the push-through identity
+\begin{equation}
+  X^\top(XX^\top+\lambda P I)^{-1}
+  =\bigl(X^\top X+\lambda P I\bigr)^{-1}X^\top
+  \label{eq:push}
+\end{equation}
+gives the min-norm interpolant $\hat w=X^\top(XX^\top)^{-1}y$ as $\lambda\downarrow 0$.
+
+\emph{Dynamics.} Gradient flow on square loss starting at $w=0$ converges to that min-norm interpolant. This is~\eqref{eq:lin-gf} in weight space, and~\eqref{eq:ridgeless} in function space.
+
+\emph{Bayes.} Likelihood $y\mid X,w\sim\mathcal{N}(Xw,\sigma^2 I)$ and prior $w\sim\mathcal{N}(0,\sigma_0^2 I)$ have posterior mean equal to~\eqref{eq:ridge-primal} with $\lambda=\sigma^2/\sigma_0^2$.
+
+\subsection{Population eigenbasis}
+
+On $L^2(P_x)$ the kernel has
+\begin{equation}
+  \int K(x,x')\,\psi_k(x')\,\dd P_x(x')
+  =\lambda_k\psi_k(x),
+  \qquad
+  \lambda_1\ge\lambda_2\ge\cdots\ge 0.
+  \label{eq:mercer}
+\end{equation}
+Expand the target $f^\star(x)=\E[y\mid x]=\sum_k \bar a_k\psi_k$, and write $t_k\equiv\bar a_k^2$. Additive label noise has variance $\sigma^2$.
+
+In the deterministic-equivalence limit~\cite{bordelon2020spectrum,canatar2021spectral,hastie2022surprises} the coefficient of mode $k$ concentrates on
+\begin{equation}
+  \hat a_k
+  =\frac{\lambda_k}{\lambda_k+\kappa}\,\bar a_k
+  +\text{(mean-zero sampling noise)},
+  \label{eq:mode-shrink}
+\end{equation}
+where the effective ridge $\kappa$ solves
+\begin{equation}
+  \kappa=\lambda+\kappa\sum_{k}\frac{\lambda_k}{P(\lambda_k+\kappa)}.
+  \label{eq:kappa}
+\end{equation}
+Ridgeless learning is $\lambda\to 0^+$ with $\kappa$ remaining positive when $P$ does not saturate every mode. Equation~\eqref{eq:kappa} is a self-consistent accounting of the degrees of freedom absorbed by the sample: each mode contributes a factor $\lambda_k/(\lambda_k+\kappa)$, and $\kappa$ is whatever is left of $\lambda$ after that absorption.
+
+\subsection{Bias, variance, learning curve}
+
+Square-loss population risk then decomposes as
+\begin{equation}
+  R
+  =\sum_k t_k\Bigl(\frac{\kappa}{\lambda_k+\kappa}\Bigr)^2
+  +\frac{\sigma^2}{P}\sum_k\Bigl(\frac{\lambda_k}{\lambda_k+\kappa}\Bigr)^2
+  +\sigma^2.
+  \label{eq:R-spectral}
+\end{equation}
+The first sum is bias: mode $k$ is learned once $P\lambda_k\gtrsim\kappa$. The second is variance from fitting noise.
+
+If $\lambda_k$ decays, as it does for NTK, Laplace, and ReLU kernels on the sphere, small-$k$ modes reach $\lambda_k\gg\kappa/P$ first. The residual of mode $k$ falls only once $P\gtrsim\kappa/\lambda_k$: \emph{spectral bias}. For fixed $\{\lambda_k\}$, a target with $t_k$ on large-$\lambda_k$ modes has smaller $R$ at given $P$: \emph{task--model alignment}~\cite{canatar2021spectral}. As $\lambda\to 0$ and $P$ crosses the rank of $\hat K$, the variance term spikes (\emph{double descent}); a decaying spectrum or $\lambda>0$ smooths the spike~\cite{belkin2019reconciling,hastie2022surprises}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{fig05_kernel_learning.pdf}
+\caption{Kernel ridge with $\lambda=10^{-3}$ and $\lambda_k\propto k^{-3/2}$. Left: population risk versus $P$. Right: residual power in modes $k=1,8,40$. Averages over Gaussian designs.}
+\label{fig:learn}
+\end{figure}
+
+Lazy neural generalization is~\eqref{eq:R-spectral} for the NTK spectrum $\Theta^{(L)}(t=0)$. On the sphere that spectrum is a Gegenbauer transform~\cite{canatar2021spectral}.
+
+\begin{exercise}
+From~\eqref{eq:kappa}, with $\sigma=0$ and $\lambda_k=k^{-\beta}$, $\beta>1$, estimate the $P$ at which mode $k$ is half-learned ($\kappa\approx\lambda_k$).
+\end{exercise}

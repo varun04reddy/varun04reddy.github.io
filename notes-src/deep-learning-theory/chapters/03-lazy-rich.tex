@@ -1,0 +1,121 @@
+\section{Lazy versus rich parameterization}
+\label{sec:lazy}
+
+Whether $K(t)$ stays at $K(0)$ is a scaling question~\cite{chizat2019lazy,yang2021mup,pehlevan2023infinite}. Write
+\begin{align}
+  h^{(1)}_\mu &= N^{-a_1} W^{(1)} x_\mu, &
+  h^{(\ell+1)}_\mu &= N^{-a_{\ell+1}} W^{(\ell+1)}\ph\!\big(h^{(\ell)}_\mu\big), &
+  f_\mu &= \gamma^{-1} N^{-a_L}\, w\cdot\ph\!\big(h^{(L-1)}_\mu\big),
+  \label{eq:pb-mlp}
+\end{align}
+with $W^{(\ell)}_{ij}\sim\mathcal{N}(0,N^{-b_\ell})$ and learning rate
+\begin{equation}
+  \eta=\eta_0\,\gamma^2 N^{c},
+  \qquad
+  \gamma=\gamma_0 N^{d},\qquad \gamma_0=\ON{1}.
+  \label{eq:lr-scale}
+\end{equation}
+Backpropagated fields:
+\begin{equation}
+  g^{(\ell)}_{\mu,i}
+  \equiv
+  N^{a_{\ell}+\frac12 b_{\ell}}\,
+  \pd{f_\mu}{h^{(\ell)}_{\mu,i}},
+  \qquad
+  G^{(\ell)}_{\mu\nu}
+  \equiv
+  N^{-1}\, g^{(\ell)}_\mu\cdot g^{(\ell)}_\nu.
+  \label{eq:G-kernel}
+\end{equation}
+
+\paragraph{Preactivations $\ON{1}$ at initialization.}
+For $\ell\ge 2$,
+\begin{equation}
+  \E\bigl[\lvert h^{(\ell)}_{\mu i}\rvert^2\bigr]
+  =N^{-2a_\ell-b_\ell}\,
+  \E\bigl[\lvert\ph(h^{(\ell-1)}_\mu)\rvert^2\bigr].
+  \label{eq:h-var}
+\end{equation}
+A finite nonzero limit requires
+\begin{equation}
+  2a_\ell+b_\ell=1,\quad \ell=2,\ldots,L,
+  \qquad
+  2a_1+b_1=0.
+  \label{eq:init-constraint}
+\end{equation}
+Under~\eqref{eq:init-constraint} the hidden units of a layer become i.i.d.\ Gaussians and $\Phi^{(\ell)}$ concentrates on
+\begin{equation}
+  \Phi^{(\ell)}_{\mu\nu}
+  =\E_{h\sim\mathcal{N}(0,\Phi^{(\ell-1)})}\bigl[\ph(h_\mu)\ph(h_\nu)\bigr],
+  \qquad
+  \Phi^{(0)}_{\mu\nu}=D^{-1}\,x_\mu\cdot x_\nu.
+  \label{eq:phi-rec-init}
+\end{equation}
+
+\paragraph{Predictions move in $\ON{1}$ time.}
+From~\eqref{eq:fn-ode}, $\partial_t f=\ON{1}$ requires $\eta K/P=\ON{1}$. Expanding $K$ over layers as in~\eqref{eq:two-ntk} and using $\Phi,G=\ON{1}$,
+\begin{equation}
+\begin{split}
+  \frac{\gamma^2}{N^{c}}\,\partial_\theta f_\mu\cdot\partial_\theta f_\nu
+  &=
+  N^{-c-2a_L+1}\Phi^{(L-1)}_{\mu\nu}
+  +\sum_{\ell=2}^{L-1} N^{-c-2a_\ell+1} G^{(\ell)}_{\mu\nu}\Phi^{(\ell-1)}_{\mu\nu}\\
+  &\qquad
+  +N^{-c-2a_1} G^{(1)}_{\mu\nu}\Phi^{(0)}_{\mu\nu}.
+\end{split}
+  \label{eq:K-expand}
+\end{equation}
+Every exponent vanishes iff
+\begin{equation}
+  2a_\ell+c=1\quad(\ell\ge 2),
+  \qquad
+  2a_1+c=0.
+  \label{eq:pred-constraint}
+\end{equation}
+
+\paragraph{Features move, or they do not.}
+Gradient flow on $W^{(1)}$ gives
+\begin{equation}
+  \partial_t h^{(1)}_\mu
+  =N^{-2a_1-c+d-\frac12}\,
+  \frac{\eta_0\gamma_0}{P}\sum_{\nu}\Delta_\nu\, g^{(1)}_\nu\,\Phi^{(0)}_{\mu\nu}.
+  \label{eq:h1-dot}
+\end{equation}
+Imposing $\partial_t h^{(1)}=\ON{1}$ together with~\eqref{eq:pred-constraint} forces $d=\tfrac12$. The same exponent appears at every later layer, because
+\begin{equation}
+  \partial_t h^{(\ell)}_\mu
+  =N^{-2a_\ell-c+d-\frac12}\times(\ON{1})
+  +N^{-a_\ell}W^{(\ell)}\bigl(\dot\ph(h^{(\ell-1)}_\mu)\odot\partial_t h^{(\ell-1)}_\mu\bigr)
+  \label{eq:hl-dot}
+\end{equation}
+and the second term inherits the scaling of $\partial_t h^{(\ell-1)}$. Any $d<\tfrac12$ sends $\partial_t h\to 0$: features freeze and $K(t)\to K(0)$. The NTK parameterization of Jacot et al.\ is $d=0$.
+
+\begin{proposition}
+The family $d=\tfrac12$,~\eqref{eq:init-constraint},~\eqref{eq:pred-constraint} yields infinite-width feature learning. A representative (mean-field / $\mu$P) is
+\begin{equation}
+  a_1=0,\quad
+  a_{\ell\ge 2}=\tfrac12,\quad
+  b_\ell=0,\quad
+  c=0,\quad
+  d=\tfrac12,
+  \qquad
+  \eta=\eta_0\gamma_0^2 N,
+  \qquad
+  f=\frac{w\cdot\ph(h^{(L-1)})}{\gamma_0\sqrt{N}}.
+  \label{eq:mup}
+\end{equation}
+Then $f_\mu(0)=\ON{N^{-1/2}}$. The NTK parameterization is the same architecture with $d=0$, or equivalently $\gamma_0\to 0$ after a time rescaling.
+\end{proposition}
+
+Chizat's diagnostic: training $\alpha f(\theta/\alpha)$ as $\alpha\to\infty$ linearizes about initialization. Here $\alpha\sim\gamma_0^{-1}N^{1/2-d}$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{fig02_lazy_rich.pdf}
+\caption{Two-layer ReLU, $N=256$, $\eta=\eta_0\gamma_0^2 N$. Left: relative motion of the hidden feature kernel $\Phi$. Right: training square loss. Only $\gamma_0$ is varied.}
+\label{fig:lazy-rich}
+\end{figure}
+
+\begin{exercise}
+For $f=\gamma_0^{-1}N^{-1/2}v\cdot\ph(Wx/\sqrt{D})$ and $c=0$, compute the $N$-scaling of $\partial_t W$ and $\partial_t v$. Recover $d=\tfrac12$ as the condition that $W$ moves by $\ON{1}$.
+\end{exercise}

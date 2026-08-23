@@ -1,0 +1,135 @@
+\section{Training dynamics and the NTK}
+\label{sec:ntk}
+
+Let $f(x;\theta)$ be scalar, $f_\mu\equiv f(x_\mu;\theta)$, and $\Delta_\mu\equiv -\partial\ell_\mu/\partial f_\mu$. For~\eqref{eq:sq-loss},
+\begin{equation}
+  \Delta_\mu=y_\mu-f_\mu.
+  \label{eq:delta-sq}
+\end{equation}
+
+\subsection{Function-space gradient flow}
+
+Chain rule on~\eqref{eq:gd-gf}:
+\begin{equation}
+  \td{f(x)}{t}
+  =\partial_\theta f(x)\cdot\td{\theta}{t}
+  =-\eta\,\partial_\theta f(x)\cdot\nabla_\theta\loss.
+  \label{eq:chain}
+\end{equation}
+The loss gradient is $\nabla_\theta\loss=P^{-1}\sum_{\mu}(\partial\ell_\mu/\partial f_\mu)\,\partial_\theta f_\mu$, so
+\begin{equation}
+  \partial_t f(x)
+  =\frac{\eta}{P}\sum_{\mu=1}^{P}
+  \underbrace{\bigl(\partial_\theta f(x)\cdot\partial_\theta f(x_\mu)\bigr)}_{K(x,x_\mu;t)}
+  \Delta_\mu.
+  \label{eq:fn-ode}
+\end{equation}
+
+\begin{definition}[Neural tangent kernel]
+\begin{equation}
+  K(x,x';t)
+  \equiv
+  \partial_\theta f(x;\theta(t))\cdot\partial_\theta f(x';\theta(t)).
+  \label{eq:ntk-def}
+\end{equation}
+On the training set, $\hat K_{\mu\nu}(t)\equiv K(x_\mu,x_\nu;t)$ and $k(x;t)_\mu\equiv K(x,x_\mu;t)$.
+\end{definition}
+$K$ is a Gram matrix of Jacobians, hence positive semidefinite. Equation~\eqref{eq:fn-ode} is exact at any finite width. It is not closed: $K(t)$ depends on $\theta(t)$.
+
+\subsection{Frozen kernel}
+
+Suppose $K(x,x';t)=K(x,x';0)\equiv K(x,x')$. On the training points,
+\begin{equation}
+  \partial_t F
+  =\frac{\eta}{P}\,\hat K\,(y-F),
+  \qquad
+  F_\mu(t)\equiv f(x_\mu;t).
+  \label{eq:train-ode}
+\end{equation}
+Diagonalize $\hat K=U\Lambda U^\top$, $\Lambda=\mathrm{diag}(\lambda_i)$. In the eigenbasis $F'=U^\top F$, $y'=U^\top y$,
+\begin{equation}
+  \partial_t F'_i=\frac{\eta\lambda_i}{P}(y'_i-F'_i)
+  \quad\Longrightarrow\quad
+  F'_i(t)=y'_i+e^{-(\eta\lambda_i/P)t}\bigl(F'_i(0)-y'_i\bigr).
+  \label{eq:mode-ode}
+\end{equation}
+Mode $i$ trains on the timescale $P/(\eta\lambda_i)$. Transforming back,
+\begin{equation}
+  F(t)
+  =y+e^{-(\eta/P)\hat K\, t}\bigl(F(0)-y\bigr)
+  =F(0)+\bigl(I-e^{-(\eta/P)\hat K\, t}\bigr)\bigl(y-F(0)\bigr).
+  \label{eq:F-sol}
+\end{equation}
+A test point is slaved to the training residual. Substituting~\eqref{eq:F-sol} into~\eqref{eq:fn-ode},
+\begin{equation}
+  f(x;t)
+  =f(x;0)
+  +k(x)^\top\hat K^{-1}
+  \bigl(I-e^{-(\eta/P)\hat K\, t}\bigr)
+  \bigl(y-F(0)\bigr),
+  \label{eq:test-sol}
+\end{equation}
+with the pseudoinverse if $\hat K$ is singular (the component of $y-F(0)$ in $\ker\hat K$ never trains). As $t\to\infty$ with $f(\,\cdot\,;0)=0$,
+\begin{equation}
+  f(x;\infty)=k(x)^\top\hat K^{-1} y,
+  \label{eq:ridgeless}
+\end{equation}
+which is~\eqref{eq:ridge} at $\lambda=0$.
+
+\subsection{Linear models}
+
+If $f(x;w)=w\cdot\Phi(x)$ with $\Phi$ fixed, then
+\begin{equation}
+  \td{w}{t}
+  =\frac{\eta}{P}\sum_{\mu}\bigl(y_\mu-w\cdot\Phi(x_\mu)\bigr)\,\Phi(x_\mu),
+  \label{eq:lin-gf}
+\end{equation}
+and
+\begin{equation}
+  \partial_t f(x)
+  =\frac{\eta}{P}\sum_{\mu} K_\Phi(x,x_\mu)\bigl(y_\mu-f(x_\mu)\bigr),
+  \qquad
+  K_\Phi(x,x')=\Phi(x)\cdot\Phi(x').
+  \label{eq:lin-fn}
+\end{equation}
+The NTK of a linear model \emph{is} $K_\Phi$, and it cannot move. Adding $\tfrac{\lambda}{2}\|w\|^2$ to the loss replaces $\hat K^{-1}$ by $(\hat K+\lambda I)^{-1}$.
+
+\subsection{Two-layer NTK}
+
+For $f(x)=N^{-1/2}v\cdot\ph(Wx/\sqrt{D})$ the Jacobian splits over $v$ and $W$:
+\begin{align}
+  \partial_{v_i}f(x) &= N^{-1/2}\ph(h_i(x)), \nonumber\\
+  \partial_{W_{ij}}f(x) &= N^{-1/2}D^{-1/2}\,v_i\,\dot\ph(h_i(x))\,x_j,
+  \label{eq:two-jac}
+\end{align}
+with $h(x)=Wx/\sqrt{D}$. Therefore
+\begin{equation}
+  K(x,x')
+  =N^{-1}\,\ph(h(x))\cdot\ph(h(x'))
+  +N^{-1}D^{-1}\bigl(v\odot\dot\ph(h(x))\bigr)\cdot\bigl(v\odot\dot\ph(h(x'))\bigr)\,(x\cdot x').
+  \label{eq:two-ntk}
+\end{equation}
+The first term is the feature kernel $\Phi$. The second is the contribution of the first-layer weights. At infinite $N$ both concentrate, and if $v,W$ move by $o_N(1)$ then $K(t)=K(0)$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\textwidth]{fig01_ntk_freeze.pdf}
+\caption{Two-layer ReLU, $\gamma_0=0.15$, square loss. Relative Frobenius change of the empirical NTK on the training set, for widths $N=32,128,512$.}
+\label{fig:ntk-freeze}
+\end{figure}
+
+\subsection{Expressivity}
+
+\begin{theorem}[Cybenko, Hornik]
+If $\ph$ is continuous, bounded, and nonconstant, then shallow nets $x\mapsto\sum_{i=1}^{N}v_i\ph(w_i\cdot x+b_i)$ are dense in $C([0,1]^D)$ in the uniform norm.
+\end{theorem}
+Density does not control the number of neurons. For ReLU nets of depth $L$ and width $N$ on $N_0$ inputs, the number of linear regions is at least~\cite{montufar2014regions}
+\begin{equation}
+  \Omega\!\left(\left(\frac{N}{N_0}\right)^{(L-1)N_0} N^{N_0}\right).
+  \label{eq:regions}
+\end{equation}
+A matched-parameter shallow net ($L=1$, width $NL$) has only $O(N^{N_0}L^{N_0})$ regions. Depth buys exponentially many linear pieces per parameter.
+
+\begin{exercise}
+Starting from~\eqref{eq:train-ode}, derive~\eqref{eq:F-sol} by expanding $F$ in the eigenbasis of $\hat K$. What is the training time of a mode with kernel eigenvalue $\lambda$?
+\end{exercise}

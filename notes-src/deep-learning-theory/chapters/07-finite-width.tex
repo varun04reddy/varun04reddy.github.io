@@ -1,0 +1,73 @@
+\section{Finite-width representation learning}
+\label{sec:dntk}
+
+Infinite-width NTK dynamics are linear in function space: $f(t)$ stays in the affine space $f(0)+\mathrm{span}\{K(x_\mu,\,\cdot\,)\}$. The first correction that moves the kernel is $O(L/N)$ at criticality~\cite{roberts2022pdlt} and $O(\gamma_0)$ at infinite width in $\mu$P.
+
+\subsection{Quadratic model}
+
+Taylor-expand in $\delta\theta=\theta-\theta_0$:
+\begin{equation}
+  f(x;\theta_0+\delta\theta)
+  =f(x;\theta_0)
+  +J(x)\cdot\delta\theta
+  +\tfrac12\,\delta\theta^\top H(x)\,\delta\theta
+  +O(\|\delta\theta\|^3),
+  \label{eq:taylor}
+\end{equation}
+with $J(x)=\partial_\theta f(x)|_{\theta_0}$ and $H_{pq}(x)=\partial_{\theta_p}\partial_{\theta_q}f(x)|_{\theta_0}$. The first two terms are a linear model with features $J$; their Gram matrix is the NTK
+\begin{equation}
+  \Theta(x,x')=J(x)\cdot J(x').
+  \label{eq:ntk-again}
+\end{equation}
+Truncating at linear order in $\delta\theta$ recovers frozen-NTK training. The quadratic term is the leading representation-learning correction.
+
+\subsection{Differential of the NTK}
+
+Along a parameter direction $u$,
+\begin{equation}
+  \bigl(\nabla_u\Theta\bigr)(x,x')
+  =H(x)\,u\cdot J(x')
+  +J(x)\cdot H(x')\,u.
+  \label{eq:dntk}
+\end{equation}
+The trilinear kernel
+\begin{equation}
+  D(x,x',x'')
+  \equiv
+  \partial_\theta\Theta(x,x')\cdot\partial_\theta f(x'')
+  \label{eq:dntk-def}
+\end{equation}
+is the dNTK~\cite{roberts2022pdlt}. It vanishes for a linear model ($H=0$). In NTK scaling $\delta\theta=O(N^{-1/2})$, so $D$ does not move $\Theta$ by an $O(1)$ amount. At finite $N$, one GD step of size $\eta$ updates the kernel by
+\begin{equation}
+  \Delta\Theta(x,x')
+  =-\frac{\eta}{P}\sum_{\mu} D(x,x',x_\mu)\,\Delta_\mu
+  +O(\eta^2).
+  \label{eq:dtheta}
+\end{equation}
+
+The first layer of an MLP contributes $D^{(1)}=0$ (the map $x\mapsto W^{(1)}x$ is linear in $W^{(1)}$). Each subsequent layer sources a nonzero $D$ from $\ddot\ph$ and from products of earlier $\Theta$'s. After $L$ layers at criticality, $D=O(L)$, hence
+\begin{equation}
+  \frac{\Delta\Theta}{\Theta}
+  =O\!\left(\frac{L}{N}\right)
+  \label{eq:dtheta-LN}
+\end{equation}
+for NTK-scaled GD with $\eta=O(1)$. The same ratio is $O(1)$ in $\mu$P at infinite $N$.
+
+\subsection{Nearly-kernel prediction}
+
+Keeping the quadratic term in~\eqref{eq:taylor} and going to a stationary point of square loss, the trained predictor is, to first order in $D$,
+\begin{equation}
+  f(x;\infty)
+  =f_{\mathrm{NTK}}(x)
+  +\frac1{2P^2}\sum_{\mu\nu}
+  D(x,x_\mu,x_\nu)\,c_{\mu\nu}
+  +O\bigl((L/N)^2\bigr),
+  \label{eq:nearly-kernel}
+\end{equation}
+where $c_{\mu\nu}$ is bilinear in the training residuals of the linear problem~\cite{roberts2022pdlt}. Predictions are still determined by a finite collection of kernels $(\Theta,D)$.
+
+The kernel picture is accurate when $L/N\ll 1$ and $d<\tfrac12$. Representation learning is $O(1)$ when $L/N=O(1)$, or when $d=\tfrac12$ with $\gamma_0=O(1)$. At fixed compute the useful aspect ratio is an $O(1)$ value of $L/N$: large enough that $D$ can move features, small enough that the $L/N$ expansion remains under control.
+
+\begin{exercise}
+For $f(x)=\tfrac12 A x^2$ with scalar $x$ and parameter $A$, compute $\Theta$ and $D$, and verify~\eqref{eq:dtheta} for one GD step.
+\end{exercise}

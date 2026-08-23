@@ -1,0 +1,106 @@
+\section{Effective theory at initialization}
+\label{sec:crit}
+
+The infinite-width kernels still depend on depth through a nonlinear map. That map can explode, vanish, or sit at a fixed point, according to the initialization variances~\cite{poole2016exponential,schoenholz2017deep,roberts2022pdlt}. Finite-width corrections around the fixed point are organized in $L/N$.
+
+\subsection{Gaussian integrals}
+
+If $z\sim\mathcal{N}(0,K)$ in $\R^{m}$,
+\begin{equation}
+  \E\bigl[e^{j\cdot z}\bigr]
+  =\exp\bigl(\tfrac12 j^\top K j\bigr).
+  \label{eq:gauss-gen}
+\end{equation}
+Odd moments vanish, and
+\begin{equation}
+  \E[z_{a}z_{b}]=K_{ab},
+  \qquad
+  \E[z_{a}z_{b}z_{c}z_{d}]
+  =K_{ab}K_{cd}+K_{ac}K_{bd}+K_{ad}K_{bc}.
+  \label{eq:wick}
+\end{equation}
+For a general activation,
+\begin{equation}
+  \E\bigl[\ph(h)\ph(h')\bigr]
+  =\int\frac{\dd u\,\dd v}{2\pi\sqrt{\det C}}\,
+  \ph(u)\ph(v)\,
+  \exp\bigl(-\tfrac12 (u,v)\,C^{-1}(u,v)^\top\bigr),
+  \label{eq:2d-gauss}
+\end{equation}
+with $C=\bigl(\begin{smallmatrix}K_{xx}&K_{xx'}\\ K_{xx'}&K_{x'x'}\end{smallmatrix}\bigr)$.
+
+\subsection{Kernel recursion}
+
+Biases $b_i\sim\mathcal{N}(0,C_b)$ and rescaled weight variance $C_W$ give
+\begin{equation}
+  K^{(\ell+1)}_{\alpha\beta}
+  =C_b+C_W\,\E\bigl[\ph(z_\alpha)\ph(z_\beta)\bigr]_{K^{(\ell)}},
+  \qquad
+  K^{(1)}_{\alpha\beta}
+  =C_b+C_W\,D^{-1}x_\alpha\cdot x_\beta.
+  \label{eq:K-rec}
+\end{equation}
+On the diagonal, $q_\ell\equiv K^{(\ell)}(x,x)$ is a 1d map $q\mapsto F(q)$. Off the diagonal one tracks $c_\ell=K^{(\ell)}(x,x')/\sqrt{q_\ell(x)q_\ell(x')}$.
+
+Linearizing about a fixed point $q_\star=F(q_\star)$,
+\begin{equation}
+  \chi
+  \equiv
+  F'(q_\star)
+  =C_W\,\E\bigl[\dot\ph(z)^2\bigr]_{z\sim\mathcal{N}(0,q_\star)}.
+  \label{eq:chi}
+\end{equation}
+Then $\delta q_{\ell+1}=\chi\,\delta q_\ell+\cdots$, and the off-diagonal perturbation $\delta c$ is multiplied by the same $\chi$. Hence $\chi<1$ is ordered (signals vanish), $\chi>1$ is chaotic (signals explode), and $\chi=1$ is critical. The pair $(\chi=1,\,q_\star=F(q_\star))$ fixes $(C_W,C_b)$ for a given $\ph$.
+
+\paragraph{Deep linear.}
+$\ph(z)=z$ implies $K^{(\ell+1)}=C_W K^{(\ell)}$, so $K^{(\ell)}=C_W^{\ell-1}K^{(1)}$. Criticality is $C_W=1$; any other choice explodes or vanishes exponentially in depth.
+
+\paragraph{tanh.}
+Odd, $\dot\ph(0)=1$. At $C_b=0$ the origin $q_\star=0$ is a fixed point and $\chi(0)=C_W$. Criticality at the origin is $C_W=1$. For $C_W<1$ the kernel collapses with depth; for $C_W>1$ it grows until the nonlinearity saturates. The same pattern holds for $\sin$ and $\mathrm{erf}$ (the $K'=0$ class of~\cite{roberts2022pdlt}).
+
+\paragraph{ReLU.}
+Homogeneous. The Cho--Saul formula~\eqref{eq:cho-saul} is the diagonal-plus-cosine map. Criticality is $C_W=2$ at $C_b=0$ (He initialization). There is no exponentially stable $q_\star>0$ at $C_b=0$ other than this ray.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{fig03_criticality.pdf}
+\caption{$\tanh$ kernel recursion~\eqref{eq:K-rec} with $C_b=0$. Left: $K^{(\ell)}(x,x)$. Right: cosine of two inputs, initialized at $c=0.5$. Subcritical, critical ($C_W=1$), and supercritical $C_W$.}
+\label{fig:crit}
+\end{figure}
+
+\subsection{\texorpdfstring{Four-point functions and $L/N$}{Four-point functions and L/N}}
+
+At finite $N$ the empirical metric
+\begin{equation}
+  G_{\alpha\beta}
+  \equiv
+  N^{-1}\sum_{i=1}^{N} h_{i}(x_\alpha)h_{i}(x_\beta)
+  \label{eq:metric}
+\end{equation}
+fluctuates about $K_{\alpha\beta}$. For a \emph{deep linear} net, a single input, $C_b=0$ and $C_W=1$, Wick's theorem on $z_i=\sum_j N^{-1/2}W_{ij}h_j$ gives the recursion
+\begin{equation}
+  \E[G]
+  =K,
+  \qquad
+  \Var(G^{(\ell+1)})
+  =\Var(G^{(\ell)})+\frac{2K^2}{N}.
+  \label{eq:var-rec}
+\end{equation}
+Iterating from a deterministic first layer,
+\begin{equation}
+  \Var\bigl(G^{(L)}\bigr)
+  =\frac{2K^2 L}{N}.
+  \label{eq:LN}
+\end{equation}
+The same $L/N$ appears for nonlinear $\ph$ at criticality, with a different $O(1)$ prefactor $V_0(\ph)$~\cite{roberts2022pdlt}. Infinite-width formulae are accurate when $L/N\ll 1$; $1/N$ corrections accumulate additively over depth.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.72\textwidth]{fig04_finite_width.pdf}
+\caption{Deep linear MLPs at $C_W=1$. Variance of $G(x,x)=N^{-1}\|h^{(L)}(x)\|^2$ across $400$ initializations, versus $1/N$, for depths $L=2,4,8$.}
+\label{fig:fn}
+\end{figure}
+
+\begin{exercise}
+Derive~\eqref{eq:var-rec} from~\eqref{eq:wick} for $z=N^{-1/2}Wh$ with $W_{ij}\sim\mathcal{N}(0,1)$ independent of $h$.
+\end{exercise}
